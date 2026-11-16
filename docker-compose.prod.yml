@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Прод-профиль: Caddy на 80/443 с автоматическим HTTPS, приложение наружу не
+# торчит (только 127.0.0.1). Запуск на сервере:
+#   DOMAIN=app.example.ru docker compose \
+#     -f docker-compose.yml -f docker-compose.observability.yml \
+#     -f docker-compose.prod.yml up -d --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: orbita
+
+services:
+  app:
+    # Наружу отдаёт Caddy; прямой порт — только для отладки на localhost.
+    ports: !override
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: orbita-edge
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Задайте DOMAIN в .env — например, app.example.ru}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.ru}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - app
+    networks:
+      - edge
+      - backend
+
+volumes:
+  caddydata:
+  caddyconfig:

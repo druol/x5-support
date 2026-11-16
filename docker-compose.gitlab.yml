@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Локальный GitLab CE + GitLab Runner. Отдельный compose-проект (не мешает
+# основному стеку). Запуск:
+#   docker compose -f docker-compose.gitlab.yml up -d
+#
+# Требования: ~5 ГБ RAM и 4+ ГБ диска. Первый старт — 3–5 минут.
+# Не запускайте одновременно с полным observability-стеком на Docker с 8 ГБ.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: orbita-gitlab
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:17.6.2-ce.0
+    container_name: orbita-gitlab
+    hostname: gitlab.local
+    restart: unless-stopped
+    shm_size: "256m"
+    # Ограничение, чтобы GitLab не съел всю память Docker Desktop.
+    mem_limit: 5g
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${GITLAB_WEB_PORT:-8929}:8929"
+      - "${BIND_ADDR:-127.0.0.1}:${GITLAB_SSH_PORT:-2222}:22"
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8929'
+        nginx['listen_port'] = 8929
+        nginx['listen_https'] = false
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        gitlab_rails['time_zone'] = 'Europe/Moscow'
+        gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD:-change-me-before-use}'
+        gitlab_rails['gitlab_default_theme'] = 2
+        # Экономим память: один процесс Puma, меньше Sidekiq.
+        puma['worker_processes'] = 0
+        puma['min_threads'] = 1
+        puma['max_threads'] = 4
+        sidekiq['max_concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        gitlab_kas['enable'] = false
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/embedded/bin/curl", "-fsS", "http://127.0.0.1:8929/-/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:v17.6.1
+    container_name: orbita-gitlab-runner
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    volumes:
+      - runner-config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  runner-config:

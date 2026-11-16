@@ -1,0 +1,22 @@
+# Зависимости и сборка
+node_modules/
+dist/
+
+# Секреты и локальные настройки
+.env
+.deploy.env
+.env.*
+!.env.example
+
+# Бэкапы и данные
+backups/
+dev-scratch/
+
+# Логи
+*.log
+
+# macOS
+.DS_Store
+
+# Локальные секреты документации
+docs/09-credentials.local.md

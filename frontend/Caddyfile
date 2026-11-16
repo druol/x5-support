@@ -1,0 +1,33 @@
+{
+	# Admin-эндпоинт нужен Prometheus для скрейпа /metrics.
+	admin :2019
+	metrics
+	persist_config off
+}
+
+:8080 {
+	root * /srv
+
+	encode zstd gzip
+
+	# Health-check для Docker и чёрного ящика.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# SPA: любой путь отдаёт index.html.
+	try_files {path} /index.html
+	file_server
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>DNSSettings</key>
+            <dict>
+                <key>DNSProtocol</key>
+                <string>HTTPS</string>
+                <key>ServerURL</key>
+                <string>https://cloudflare-dns.com/dns-query</string>
+            </dict>
+            <key>PayloadDescription</key>
+            <string>DNS over HTTPS (Cloudflare) — обходит перехват UDP DNS провайдером/роутером</string>
+            <key>PayloadDisplayName</key>
+            <string>Cloudflare DoH</string>
+            <key>PayloadIdentifier</key>
+            <string>ru.orbita.doh.cloudflare</string>
+            <key>PayloadType</key>
+            <string>com.apple.dnsSettings.managed</string>
+            <key>PayloadUUID</key>
+            <string>AD69CB8E-6B94-47A3-B594-129E564C533F</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+        </dict>
+    </array>
+    <key>PayloadDescription</key>
+    <string>Включает DNS-over-HTTPS Cloudflare для всей системы: Safari и приложения перестают видеть устаревший/подменённый DNS-кэш.</string>
+    <key>PayloadDisplayName</key>
+    <string>Orbita — Cloudflare DoH</string>
+    <key>PayloadIdentifier</key>
+    <string>ru.orbita.doh</string>
+    <key>PayloadOrganization</key>
+    <string>Orbita</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadScope</key>
+    <string>System</string>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>10069CB0-7EE3-462D-AA5C-8C4429A0C665</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>

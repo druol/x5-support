@@ -1,0 +1,49 @@
+// Grafana Alloy: собирает stdout/stderr всех Docker-контейнеров и отправляет в Loki.
+
+discovery.docker "containers" {
+	host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_log_stream"]
+		target_label  = "stream"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.containers.targets
+	relabel_rules = discovery.relabel.containers.rules
+	labels        = {job = "docker"}
+	forward_to    = [loki.process.filter.receiver]
+}
+
+// При первом запуске Alloy вычитывает старые Docker-логи — отбрасываем то,
+// что всё равно не примет Loki (retention 14 дней).
+loki.process "filter" {
+	stage.drop {
+		older_than = "336h"
+	}
+
+	forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

@@ -1,0 +1,13 @@
+.git
+.gitlab
+.gitlab-ci.yml
+node_modules
+pnpm-workspace.yaml
+dist
+backups
+.env
+.env.*
+*.log
+*.png
+*.mjs
+README*.md

@@ -1,0 +1,37 @@
+{
+	email {$ACME_EMAIL}
+	auto_https off
+}
+
+# HTTP: домены редиректим на HTTPS, прямой доступ по IP оставляем рабочим.
+:80 {
+	@orbita host {$DOMAIN} *.{$DOMAIN}
+	redir @orbita https://{host}{uri} permanent
+
+	reverse_proxy app:8080
+}
+
+# HTTPS: wildcard-сертификат покрывает apex и все поддомены (app, www, ...).
+https://{$DOMAIN}, https://*.{$DOMAIN} {
+	tls /certs/live/{$DOMAIN}/fullchain.pem /certs/live/{$DOMAIN}/privkey.pem
+
+	encode zstd gzip
+
+	reverse_proxy app:8080 {
+		health_uri /healthz
+		health_interval 30s
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

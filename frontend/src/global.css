@@ -1,0 +1,102 @@
+:root {
+  --font-geist: "Geist Variable";
+  --font-inter: "Inter Variable";
+  --arc-accent: oklch(51% 0.16 290);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+  background: var(--background);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 400;
+  letter-spacing: var(--tracking-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+::selection {
+  background: var(--accent-subtle);
+}
+
+/* Тема меняется круговой волной из точки нажатия: --x и --y ставит ThemeSwitch. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 540ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(root) {
+  animation: none;
+}
+
+::view-transition-new(root) {
+  animation-name: arc-theme-reveal;
+}
+
+@keyframes arc-theme-reveal {
+  from {
+    clip-path: circle(0 at var(--x, 92%) var(--y, 4%));
+  }
+  to {
+    clip-path: circle(145% at var(--x, 92%) var(--y, 4%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
