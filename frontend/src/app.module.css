@@ -995,3 +995,32 @@
   width: var(--control-height-md);
   padding: 0;
 }
+
+/* мобильный топбар: две строки, без дублирующего mobileNav */
+@media (max-width: 1080px) {
+  .mobileNav {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 0;
+    padding: 10px 16px;
+  }
+
+  .topBrand {
+    gap: 0;
+  }
+
+  .topBrand span:last-child {
+    display: none;
+  }
+
+  .page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

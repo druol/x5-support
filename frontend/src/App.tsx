@@ -113,6 +113,14 @@ function Loading() {
 
 type NotificationFilter = "all" | "unread" | "comment" | "status";
 
+function ticketsLabel(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} заявка`;
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return `${count} заявки`;
+  return `${count} заявок`;
+}
+
 function eventsLabel(count: number) {
   const mod10 = count % 10;
   const mod100 = count % 100;
@@ -462,7 +470,7 @@ function AdminTickets({ tickets, error, reload, initialStatus }: { tickets: Tick
               className={styles.topicSelect}
               options={[{ value: "", label: "Все темы" }, ...Object.entries(topics).map(([key, value]) => ({ value: key, label: value }))]}
             />
-            <span className={styles.recordCount}>{filtered.length} заявок</span>
+            <span className={styles.recordCount}>{ticketsLabel(filtered.length)}</span>
             <div className={styles.searchSlot}>
               <SearchField label="Найти заявку" value={query} onValueChange={setQuery} placeholder="Номер, заголовок" />
             </div>
@@ -472,16 +480,33 @@ function AdminTickets({ tickets, error, reload, initialStatus }: { tickets: Tick
         <Failure message={error} retry={reload} />
 
         {rows.length > 0 ? (
-          <div className={styles.tableArea}>
-            <SortableDataTable
+          <>
+            <div className={styles.mobileAdminList}>
+              {filtered.map(ticket => (
+                <Link key={ticket.id} href={`/admin/tickets/${ticket.id}`} className={styles.mobileAdminCard}>
+                  <div className={styles.mobileAdminTop}>
+                    <span className={styles.muted}>№{ticket.id}</span>
+                    <StatusBadge status={ticket.status} />
+                  </div>
+                  <strong>{ticket.title}</strong>
+                  <div className={styles.mobileAdminMeta}>
+                    <span>{topics[ticket.topic]}</span>
+                    <time dateTime={ticket.created_at}>{formatTime(ticket.created_at)}</time>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className={styles.tableArea}>
+              <SortableDataTable
               rows={rows}
               columns={ticketColumns()}
               rowKey="key"
               caption="Все заявки"
               defaultSort={{ key: "createdTs", direction: "desc" }}
               itemName={{ one: "заявка", other: "заявок" }}
-            />
-          </div>
+              />
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<SearchX size={22} />}

@@ -1513,3 +1513,225 @@ button:focus-visible {
   width: 100%;
   font-size: var(--text-xs);
 }
+
+/* ===================================================== мобильная версия */
+
+.mobileAdminList {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .pageEnter {
+    gap: var(--space-4);
+    padding-bottom: 32px;
+  }
+
+  .pageHead {
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
+
+  .pageHead .title {
+    font-size: 32px;
+    line-height: 1.02;
+  }
+
+  .pageHead .description {
+    font-size: var(--text-sm);
+  }
+
+  .headActions {
+    width: 100%;
+  }
+
+  .headActions > button,
+  .headActions > a {
+    width: 100%;
+  }
+
+  .headActions > *:not(button):not(a) {
+    width: auto;
+  }
+
+  .pageHead button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .statStrip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .statChip {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .adminToolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .adminTabs,
+  .adminTabs > div {
+    width: 100%;
+  }
+
+  .adminFilters {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .topicSelect,
+  .searchSlot,
+  .recordCount {
+    width: 100%;
+  }
+
+  .recordCount {
+    order: 3;
+    font-size: var(--text-xs);
+    text-align: left;
+  }
+
+  .tableArea {
+    display: none;
+  }
+
+  .mobileAdminList {
+    display: grid;
+    gap: 8px;
+    padding: var(--space-3);
+  }
+
+  .mobileAdminCard {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-surface);
+    background: var(--surface);
+    box-shadow: var(--shadow-resting);
+  }
+
+  .mobileAdminTop,
+  .mobileAdminMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .mobileAdminCard strong {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .mobileAdminMeta {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mobileAdminMeta time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .formCard,
+  .panel {
+    padding: 16px;
+  }
+
+  .detailGrid {
+    gap: var(--space-4);
+  }
+
+  .detailGrid .tipCard {
+    display: none;
+  }
+
+  .formActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .formActions button,
+  .formActions > button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .formGrid input,
+  .formGrid textarea,
+  .formGrid .field input,
+  .formGrid .field textarea,
+  .commentForm textarea {
+    font-size: 16px; /* iOS не зумит при фокусе */
+  }
+
+  .commentForm button {
+    width: 100%;
+  }
+
+  .inbox {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: calc(100dvh - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .notificationMessage {
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 760px) {
+  .topLeft {
+    flex: 1 1 auto;
+    width: auto;
+    gap: 0;
+  }
+
+  .roleSlot {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+  }
+
+  .roleSlot > div {
+    width: 100%;
+  }
+
+  .roleSwitch {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .roleSwitch a {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .topActionsRight {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .pageHead .eyebrow {
+    font-size: 10px;
+  }
+
+  .ticketCardTitle {
+    font-size: 16px;
+  }
+}
