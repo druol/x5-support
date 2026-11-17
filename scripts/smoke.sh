@@ -37,6 +37,8 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml ps --fo
 echo
 echo "── HTTP-эндпоинты ─────────────────────────────────────────"
 check "app"            "http://127.0.0.1:${APP_PORT}/healthz"
+check "tickets API"    "http://127.0.0.1:${APP_PORT}/api/healthz"
+check "notifications"  "http://127.0.0.1:${APP_PORT}/api/notifications"
 check "prometheus"     "http://127.0.0.1:${PROMETHEUS_PORT}/-/ready"
 check "grafana"        "http://127.0.0.1:${GRAFANA_PORT}/api/health"
 check "alertmanager"   "http://127.0.0.1:${ALERTMANAGER_PORT}/-/ready"
@@ -84,7 +86,7 @@ fi
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "ИТОГ: всё зелёное ✅"
-  echo "Grafana:    http://127.0.0.1:${GRAFANA_PORT}  (${GRAFANA_ADMIN_USER:-admin} / ${GRAFANA_ADMIN_PASSWORD:-orbita_admin})"
+  echo "Grafana:    http://127.0.0.1:${GRAFANA_PORT}  (доступы в .env)"
   echo "Prometheus: http://127.0.0.1:${PROMETHEUS_PORT}"
   echo "Приложение: http://127.0.0.1:${APP_PORT}"
   exit 0

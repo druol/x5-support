@@ -52,6 +52,19 @@ build:
 test-backend:
 	@docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests; result=$$?; docker compose -f docker-compose.test.yml down; exit $$result
 
+.PHONY: test-frontend check-tickets check-recovery check-browser
+test-frontend:
+	cd frontend && pnpm lint && pnpm test && pnpm build
+
+check-tickets:
+	python3 scripts/check-tickets.py
+
+check-recovery:
+	python3 scripts/check-tickets.py --recovery
+
+check-browser:
+	node scripts/check-browser.mjs
+
 gitlab:
 	docker compose -f docker-compose.gitlab.yml up -d
 

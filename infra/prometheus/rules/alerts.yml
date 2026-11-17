@@ -39,6 +39,15 @@ groups:
 
   - name: orbita-performance
     rules:
+      - alert: SupportOutboxBacklog
+        expr: support_outbox_oldest_seconds{job="backend"} > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Очередь уведомлений не обрабатывается"
+          description: "Самое старое недоставленное событие ожидает больше 5 минут; проверьте notifications и Postgres."
+
       - alert: HighErrorRate
         expr: |
           sum(rate(caddy_http_response_duration_seconds_count{handler="file_server",code=~"5.."}[5m]))

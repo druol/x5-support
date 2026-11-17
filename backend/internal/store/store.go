@@ -270,6 +270,19 @@ func (s *Store) Inbox(ctx context.Context) (Inbox, error) {
 	}
 	return inbox, rows.Err()
 }
+
+// DeleteAllNotifications очищает inbox (для локальной отладки).
+func (s *Store) DeleteAllNotifications(ctx context.Context) error {
+	_, err := s.DB.Exec(ctx, `TRUNCATE notifications.items RESTART IDENTITY`)
+	return err
+}
+
+// DeleteAllTickets очищает заявки, историю, outbox и уведомления (для локальной отладки).
+func (s *Store) DeleteAllTickets(ctx context.Context) error {
+	_, err := s.DB.Exec(ctx, `TRUNCATE ticketing.tickets, ticketing.history, ticketing.outbox, notifications.items RESTART IDENTITY CASCADE`)
+	return err
+}
+
 func (s *Store) Read(ctx context.Context, id int64) error {
 	result, err := s.DB.Exec(ctx, `UPDATE notifications.items SET read_at=COALESCE(read_at,clock_timestamp()) WHERE id=$1`, id)
 	if err != nil {

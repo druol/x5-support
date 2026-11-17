@@ -10,20 +10,21 @@
 инфраструктура: Docker Compose, Postgres, Redis, Prometheus, Grafana, Loki, GitLab CI,
 деплой в Yandex Cloud, домен и HTTPS.
 
-**Дальше пользователь планирует полностью переписать приложение — сделать тикетную
-систему (frontend + backend).** Инфраструктуру при этом надо переиспользовать.
-План адаптации — в [`08-rebuild-ticketing.md`](08-rebuild-ticketing.md).
+**Локальное приложение уже переписано в тикетную систему:** React-клиент, Go API,
+PostgreSQL и отдельный процесс доставки уведомлений через transactional outbox.
+Исторический production deployment и CI/CD не обновлялись и в этой работе не
+проверялись; этот репозиторий описывает локальную реализацию.
 
-## 2. Текущее состояние (актуально на 17.11.2026)
+## 2. Текущее состояние (локальная разработка, 17.11.2026)
 
 | Компонент | Статус |
 |---|---|
-| Локальный стек (app + postgres + redis + observability) | ✅ работает, `make status` всё зелёное |
-| GitLab CE + runner локально | ✅ `http://localhost:8929`, runner online |
-| CI/CD пайплайн | ✅ зелёный: `lint → test → check → build-image → deploy (manual)` |
-| Прод-сервер Yandex Cloud | ✅ 15 контейнеров Up, autoheal, бэкапы по cron |
-| Домен `x5-test-task.ru` | ✅ A-записи на сервер, HTTPS wildcard Let's Encrypt |
-| Cloudflare-туннели (резерв) | ✅ приложение и Grafana доступны с любой сети |
+| Локальный тикетный стек (React + Go API + PostgreSQL outbox + notifications + observability) | ✅ проверен локально |
+| GitLab CE + runner локально | исторический статус; сейчас не проверялся |
+| CI/CD пайплайн | историческая конфигурация; не менялась и не проверялась для тикетной системы |
+| Прод-сервер Yandex Cloud | исторический deployment; состояние не проверялось |
+| Домен `x5-test-task.ru` | историческая DNS/TLS конфигурация; не проверялась |
+| Cloudflare-туннели (резерв) | историческая настройка; не проверялась |
 
 ## 3. Адреса
 
@@ -59,7 +60,8 @@ uiarc-dashboard/
 └── .deploy.env                # параметры деплоя с Mac (в .gitignore)
 ```
 
-На сервере тот же код лежит в `/opt/orbita` (rsync из CI или с Mac).
+Исторически production код размещался в `/opt/orbita`. Локальная переделка тикетной
+системы на сервер не выкладывалась, production состояние здесь не проверялось.
 
 ## 5. Доступы (где брать, не хардкодить)
 
@@ -125,7 +127,7 @@ ssh -i ~/.ssh/orbita ubuntu@84.252.135.15
 cd /opt/orbita && docker compose \
   -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml ps
 
-# CI-пайплайн: GitLab → Build → Pipelines; deploy запускается вручную
+# CI/CD не менялся и в рамках локальной переделки не проверялся.
 ```
 
 ## 9. Правила работы (унаследованы от пользователя)

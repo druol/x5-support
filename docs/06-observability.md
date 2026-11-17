@@ -27,6 +27,8 @@
 | `prometheus` | `localhost:9090` | самометрики |
 | `node` | `node-exporter:9100` | CPU/RAM/диск хоста |
 | `app` | `app:2019` | метрики Caddy (HTTP-запросы, коды, latency) |
+| `backend` | `backend:8080/metrics` | Go API requests, errors, duration, outbox backlog |
+| `notifications` | `notifications:8080/metrics` | health and service metrics for outbox worker |
 | `postgres` | `postgres-exporter:9187` | БД: соединения, транзакции, размер |
 | `redis` | `redis-exporter:9121` | память, ключи, hit-rate |
 | `loki` | `loki:3100` | здоровье Loki |
@@ -41,7 +43,7 @@ curl -s http://127.0.0.1:9090/api/v1/targets | jq '.data.activeTargets | length'
 # или в UI: Prometheus → Status → Targets
 ```
 
-## 3. Алерты (8 правил)
+## 3. Алерты
 
 `infra/prometheus/rules/alerts.yml`:
 
@@ -53,6 +55,7 @@ curl -s http://127.0.0.1:9090/api/v1/targets | jq '.data.activeTargets | length'
 | `RedisDown` | `redis_up == 0` |
 | `HighErrorRate` | доля 5xx у Caddy выше порога |
 | `AppLatencyHigh` | p95 latency приложения выше порога |
+| `SupportOutboxBacklog` | возраст старейшего неподтверждённого outbox event > 5 минут в течение 5 минут |
 | `ContainerMemoryHigh` | память контейнера > 80% лимита |
 | `DiskSpaceLow` | свободное место на диске < 15% |
 
@@ -75,6 +78,7 @@ Alertmanager (`infra/alertmanager/alertmanager.yml`) по умолчанию б�
 | `orbita-overview.json` | Orbita / Overview | здоровье приложения, RPS, ошибки, latency, БД/Redis |
 | `orbita-infra.json` | Orbita / Infra | хост: CPU, RAM, диск, сеть, контейнеры |
 | `orbita-logs.json` | Orbita / Logs | логи из Loki (фильтры по контейнерам) |
+| `support-service.json` | Support / Service | API request/error rate, средняя длительность, pending outbox count и возраст |
 
 Доступ:
 
@@ -105,22 +109,22 @@ docker logs orbita-edge --tail 100
 docker compose ... logs -f --tail=100
 ```
 
-## 6. Метрики приложения
+## 6. Метрики тикетного приложения
 
-Сейчас метрики приложения — это метрики Caddy на `app:2019/metrics`:
-количество запросов, коды ответов, длительности. Этого достаточно для статики.
+Go API и notifications worker публикуют Prometheus text format на `/metrics` порта
+8080 внутри Compose сети. Prometheus собирает их отдельными jobs с интервалом 15 с.
 
-Когда появится **бэкенд**:
+| Метрика | Значение |
+|---|---|
+| `support_http_requests_total` | число обработанных HTTP-запросов |
+| `support_http_errors_total` | число ответов с ошибкой |
+| `support_http_duration_seconds_sum` / `_count` | накопленная длительность и число запросов; отношение rate sum/count — средняя длительность |
+| `support_outbox_pending` | количество событий без `delivered_at` |
+| `support_outbox_oldest_seconds` | возраст самого старого недоставленного события |
 
-1. Добавить `/metrics` (Prometheus client для Go/Node/Python).
-2. Добавить job в `infra/prometheus/prometheus.yml`:
-   ```yaml
-   - job_name: backend
-     static_configs:
-       - targets: ["backend:8080"]
-         labels: { service: backend }
-   ```
-3. Добавить панели в `orbita-overview.json` (RPS, latency, error rate, БД).
+Обе службы экспортируют один и тот же набор; актуальный backlog берите с `job="backend"`.
+Для обзора откройте Grafana → Support / Service. Алерт `SupportOutboxBacklog`
+срабатывает, если старейший event ожидает больше пяти минут непрерывно пять минут.
 
 ## 7. Быстрая диагностика «всё ли живо»
 
@@ -136,4 +140,8 @@ cd /opt/orbita && docker compose -f docker-compose.yml \
 curl -s http://127.0.0.1:9090/api/v1/targets | \
   python3 -c "import json,sys; d=json.load(sys.stdin)['data']['activeTargets']; \
   print('up:',sum(1 for t in d if t['health']=='up'),'/',len(d))"
+
+# локальное API и метрика очереди
+curl -fsS http://127.0.0.1:8090/healthz
+curl -fsS 'http://127.0.0.1:9090/api/v1/query?query=support_outbox_pending'
 ```

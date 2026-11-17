@@ -1,97 +1,53 @@
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
-  ArrowRight,
+  ArrowLeft,
+  ArrowUpRight,
   Bell,
-  ChartLine,
   Check,
-  FileText,
-  LayoutDashboard,
-  Orbit,
-  Play,
-  Plug,
+  CheckCheck,
+  ChevronDown,
+  ChevronRight,
+  Clock3,
+  CircleHelp,
+  ClipboardList,
+  Headphones,
+  Inbox as InboxIcon,
+  MessageSquare,
+  Moon,
+  PanelLeft,
+  PanelLeftClose,
+  Plus,
   SearchX,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Zap,
+  Sun,
+  Ticket as TicketIcon,
+  X,
 } from "lucide-react";
 
-import { Accordion } from "@/components/arc/accordion/accordion";
-import { ActivityHeatmap } from "@/components/arc/activity-heatmap/activity-heatmap";
 import { Alert } from "@/components/arc/alert/alert";
-import { AnimatedCounter } from "@/components/arc/animated-counter/animated-counter";
-import { AvatarGroup } from "@/components/arc/avatar-group/avatar-group";
+import { Skeleton } from "@/components/arc/skeleton/skeleton";
 import { Badge } from "@/components/arc/badge/badge";
 import { Button } from "@/components/arc/button/button";
-import { DonutChart } from "@/components/arc/donut-chart/donut-chart";
 import { EmptyState } from "@/components/arc/empty-state/empty-state";
 import { ExpandingSearch } from "@/components/arc/expanding-search/expanding-search";
-import { Gauge } from "@/components/arc/gauge/gauge";
 import { Input } from "@/components/arc/input/input";
-import { LineChart } from "@/components/arc/line-chart/line-chart";
-import { MetricCard } from "@/components/arc/metric-card/metric-card";
-import { Progress } from "@/components/arc/progress/progress";
 import { SearchField } from "@/components/arc/search-field/search-field";
-import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { SortableDataTable } from "@/components/arc/sortable-data-table/sortable-data-table";
-import { Sparkline } from "@/components/arc/sparkline/sparkline";
-import { Switch } from "@/components/arc/switch/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
-import { ThemeSwitch } from "@/components/arc/theme-switch/theme-switch";
-import type { Theme } from "@/components/arc/theme-switch/theme-switch";
-import { Tooltip } from "@/components/arc/tooltip/tooltip";
-import { UserMenu } from "@/components/arc/user-menu/user-menu";
+import type { DataColumn } from "@/components/arc/sortable-data-table/sortable-data-table";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { Select } from "@/components/ui/select/select";
 
-import {
-  accountColumns,
-  accounts,
-  activityDays,
-  channels,
-  compactFormat,
-  faqItems,
-  lineData,
-  lineSeries,
-  ranges,
-  releaseColumns,
-  releases,
-  teamMembers,
-} from "./data";
-import styles from "./app.module.css";
+type Theme = "light" | "dark";
 
-const navItems = [
-  { id: "overview", label: "Обзор", href: "#overview", icon: LayoutDashboard },
-  { id: "metrics", label: "Метрики", href: "#metrics", icon: ChartLine },
-  { id: "reports", label: "Отчёты", href: "#reports", icon: FileText },
-  { id: "teams", label: "Команды", href: "#teams", icon: Users },
-  { id: "features", label: "Возможности", href: "#features", icon: Sparkles },
-  { id: "faq", label: "Вопросы", href: "#faq", icon: Settings },
-];
+import { request, useResource } from "./api";
+import { Link, navigate, usePath, useSearch } from "./navigation";
+import { authors, formatTime, nextAction, statuses, topics } from "./tickets";
+import type { Inbox, Notification, Role, Status, Ticket, TicketDetail } from "./tickets";
+import shell from "./app.module.css";
+import styles from "./tickets.module.css";
 
-const latency = [92, 104, 98, 118, 126, 121, 112, 108, 118, 132, 128, 119, 111, 124, 138, 129, 121, 116, 128, 134];
-
-const sparkData = {
-  signups: [42, 51, 48, 62, 58, 71, 74, 69, 78, 86, 82, 91],
-  payments: [18, 22, 21, 26, 24, 29, 27, 33, 31, 36, 38, 41],
-  errors: [12, 9, 11, 8, 10, 7, 6, 8, 5, 6, 4, 4],
-};
-
-const searchItems = [
-  ...accounts.map((account) => ({
-    id: `team:${account.id}`,
-    title: account.name,
-    meta: `${account.domain} · ${account.plan}`,
-    group: "Команды",
-  })),
-  { id: "metric:mrr", title: "Выручка (MRR)", meta: "Метрика", group: "Метрики" },
-  { id: "metric:retention", title: "Удержание 30 дней", meta: "Метрика", group: "Метрики" },
-  { id: "report:activity", title: "Активность продукта", meta: "Отчёт", group: "Отчёты" },
-  { id: "report:channels", title: "Каналы привлечения", meta: "Отчёт", group: "Отчёты" },
-  { id: "faq:connect", title: "Сколько времени занимает подключение", meta: "Вопрос", group: "Вопросы" },
-];
-
-const searchSuggestions = [searchItems[0]!, searchItems[8]!, searchItems[9]!];
+/* ------------------------------------------------------------------ утилиты */
 
 function useAppliedTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -108,706 +64,1142 @@ function useAppliedTheme() {
     }
   }, [theme]);
 
-  function applyTheme(next: Theme, trigger: HTMLElement) {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const doc = document as Document & {
-      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
-    };
-    if (!doc.startViewTransition || reduce) {
-      setTheme(next);
-      return;
-    }
-    const rect = trigger.getBoundingClientRect();
-    document.documentElement.style.setProperty("--x", `${rect.left + rect.width / 2}px`);
-    document.documentElement.style.setProperty("--y", `${rect.top + rect.height / 2}px`);
-    doc.startViewTransition(() => setTheme(next));
+  // Простое переключение без view-transition и анимации иконки: убирает артефакты
+  // с blur/filter в Safari/Chrome при морфозе солнца и луны.
+  function applyTheme(next: Theme) {
+    setTheme(next);
   }
 
   return { theme, applyTheme };
 }
 
-export default function App() {
-  const { theme, applyTheme } = useAppliedTheme();
-  const [activeNav, setActiveNav] = useState("overview");
-  const [range, setRange] = useState("30");
-  const [chartLoading, setChartLoading] = useState(false);
-  const [activePoint, setActivePoint] = useState<{ date: string; value: number } | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string | null>("2026-11-14");
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("accounts");
-  const [email, setEmail] = useState("");
-  const [leadState, setLeadState] = useState<"idle" | "sending" | "sent">("idle");
-  const [setupDone, setSetupDone] = useState<string[]>(["connect"]);
+const statusOptions = [
+  { value: "all", label: "Все" },
+  { value: "new", label: "Новые" },
+  { value: "in_progress", label: "В работе" },
+  { value: "done", label: "Выполнено" },
+];
 
-  const data = lineData(Number(range));
-  const latest = data[data.length - 1];
-  const readout = activePoint ?? {
-    date: latest.label,
-    value: latest.values.current ?? 0,
-  };
-  const filteredAccounts = accounts.filter((account) =>
-    `${account.name} ${account.domain} ${account.plan}`.toLowerCase().includes(query.trim().toLowerCase()),
+function StatusBadge({ status }: { status: Status }) {
+  return (
+    <Badge tone={status === "done" ? "success" : status === "in_progress" ? "warning" : "info"} dot pill>
+      {statuses[status]}
+    </Badge>
   );
+}
 
-  useEffect(() => {
-    if (!chartLoading) return;
-    const timer = window.setTimeout(() => setChartLoading(false), 520);
-    return () => window.clearTimeout(timer);
-  }, [chartLoading]);
+function Failure({ message, retry }: { message?: string; retry?: () => void }) {
+  if (!message) return null;
+  return (
+    <Alert tone="danger" title={message} role="alert">
+      {retry && (
+        <Button variant="ghost" size="sm" onClick={retry}>
+          Повторить
+        </Button>
+      )}
+    </Alert>
+  );
+}
 
-  function changeRange(next: string) {
-    setRange(next);
-    setActivePoint(null);
-    setChartLoading(true);
+function Loading() {
+  return (
+    <div className={styles.loading} role="status">
+      Загружаем заявки…
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------- уведомления */
+
+type NotificationFilter = "all" | "unread" | "comment" | "status";
+
+function eventsLabel(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} событие`;
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return `${count} события`;
+  return `${count} событий`;
+}
+
+function groupNotifications(items: Notification[]) {
+  const byTicket = new Map<number, Notification[]>();
+  for (const item of items) {
+    const bucket = byTicket.get(item.ticket_id);
+    if (bucket) bucket.push(item);
+    else byTicket.set(item.ticket_id, [item]);
   }
+  return [...byTicket.entries()]
+    .map(([ticket, list]) => ({
+      ticket,
+      items: list.slice().sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()),
+      latest: Math.max(...list.map(item => new Date(item.occurred_at).getTime())),
+    }))
+    .sort((a, b) => b.latest - a.latest);
+}
 
-  function submitLead(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
-    setLeadState("sending");
-    window.setTimeout(() => setLeadState("sent"), 900);
-  }
+function notificationKind(message: string): "comment" | "status" {
+  if (message.startsWith("Администратор добавил комментарий")) return "comment";
+  return "status";
+}
+
+function Notifications() {
+  const { data, error, reload } = useResource<Inbox>("/notifications", 2000);
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<number | null>(null);
+  const [readError, setReadError] = useState("");
+  const [filter, setFilter] = useState<NotificationFilter>("all");
+
+  const items = data?.items ?? [];
+  const counts = {
+    all: items.length,
+    unread: items.filter(item => !item.read_at).length,
+    comment: items.filter(item => notificationKind(item.message) === "comment").length,
+    status: items.filter(item => notificationKind(item.message) === "status").length,
+  };
+  const visible = items.filter(item => {
+    if (filter === "unread") return !item.read_at;
+    if (filter === "comment") return notificationKind(item.message) === "comment";
+    if (filter === "status") return notificationKind(item.message) === "status";
+    return true;
+  });
+  // Сначала отдельно непрочитанные, затем прочитанные; внутри каждой части — группы по заявке.
+  const unreadItems = visible.filter(item => !item.read_at);
+  const readItems = visible.filter(item => item.read_at);
+  const sections = [
+    { key: "unread", title: "Непрочитанные", groups: groupNotifications(unreadItems), count: unreadItems.length },
+    { key: "read", title: "Прочитанные", groups: groupNotifications(readItems), count: readItems.length },
+  ].filter(section => section.count > 0);
+
+  const read = async (item: Notification) => {
+    if (pending !== null) return;
+    setPending(item.id);
+    setReadError("");
+    try {
+      await request(`/notifications/${item.id}/read`, {});
+      reload();
+      setOpen(false);
+      navigate(`/user/tickets/${item.ticket_id}`);
+    } catch (error) {
+      setReadError((error as Error).message);
+    } finally {
+      setPending(null);
+    }
+  };
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.sidebar}>
-        <a className={styles.brand} href="#overview" aria-label="Орбита, на главную">
-          <span className={styles.brandMark} aria-hidden="true">
-            <Orbit width={22} height={22} strokeWidth={1.75} />
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild>
+        <Button
+          variant="secondary"
+          size="sm"
+          className={styles.bellButton}
+          aria-label={`Уведомления: ${data?.unread ?? 0} непрочитанных`}
+        >
+          <Bell size={17} />
+          <span className={styles.bellCount} aria-live="polite">
+            {data?.unread ?? 0}
           </span>
-          <span className={styles.brandName}>Орбита</span>
-        </a>
-
-        <nav className={styles.nav} aria-label="Основная навигация">
-          <p className={styles.navGroupLabel}>Рабочее пространство</p>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <a
-                key={item.id}
-                href={item.href}
-                className={`${styles.navItem} ${activeNav === item.id ? styles.navItemActive : ""}`}
-                aria-current={activeNav === item.id ? "page" : undefined}
-                onClick={() => setActiveNav(item.id)}
+          {error && <span className={styles.offlineDot} title="Обновление уведомлений недоступно" />}
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className={styles.overlay} />
+        <Dialog.Content className={styles.inbox}>
+          <div className={styles.panelHead}>
+            <div>
+              <Dialog.Title>Уведомления</Dialog.Title>
+              <Dialog.Description>{data?.unread ?? 0} непрочитанных · новые сверху</Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <Button variant="ghost" size="sm" aria-label="Закрыть уведомления">
+                <X size={18} />
+              </Button>
+            </Dialog.Close>
+          </div>
+          <div className={styles.inboxFilters} role="tablist" aria-label="Фильтр уведомлений">
+            {([
+              { value: "all", label: "Все", count: counts.all },
+              { value: "unread", label: "Новые", count: counts.unread },
+              { value: "status", label: "Статусы", count: counts.status },
+              { value: "comment", label: "Комментарии", count: counts.comment },
+            ] as const).map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={filter === option.value}
+                className={`${styles.inboxFilter} ${filter === option.value ? styles.inboxFilterActive : ""}`}
+                onClick={() => setFilter(option.value)}
               >
-                <Icon width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-                <span>{item.label}</span>
-              </a>
-            );
-          })}
+                {option.label}
+                <span>{option.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className={styles.inboxBody}>
+            <Failure
+              message={error ? "Уведомления временно недоступны. Мы автоматически повторим загрузку." : readError}
+              retry={reload}
+            />
+            {!data && !error && <p className={styles.muted}>Загружаем уведомления…</p>}
+            {data && visible.length === 0 && (
+              <EmptyState
+                icon={<Bell size={20} />}
+                title={filter === "all" ? "Пока без новостей" : "Здесь пусто"}
+                description={
+                  filter === "all"
+                    ? "Здесь появятся ответы администратора и изменения статуса ваших заявок."
+                    : filter === "unread"
+                      ? "Все уведомления прочитаны."
+                      : filter === "comment"
+                        ? "Комментариев администратора пока не было."
+                        : "Изменений статуса пока не было."
+                }
+              />
+            )}
+            {sections.map(section => (
+              <section className={styles.inboxSection} key={section.key} aria-label={section.title}>
+                <div className={styles.inboxSectionHead}>
+                  <span>{section.title}</span>
+                  <span>{section.count}</span>
+                </div>
+                {section.groups.map(group => (
+                  <div className={styles.notificationGroup} key={group.ticket}>
+                    <div className={styles.groupHead}>
+                      <span className={styles.groupTitle}>Заявка №{group.ticket}</span>
+                      <span className={styles.groupCount}>{eventsLabel(group.items.length)}</span>
+                    </div>
+                    <div className={styles.groupItems}>
+                      {group.items.map(item => (
+                        <button
+                          type="button"
+                          key={item.id}
+                          disabled={pending !== null}
+                          className={`${styles.notification} ${!item.read_at ? styles.notificationUnread : ""}`}
+                          onClick={() => void read(item)}
+                        >
+                          <span className={styles.notificationMessage}>{item.message}</span>
+                          <span className={styles.notificationMeta}>
+                            <span className={styles.notificationKind}>{notificationKind(item.message) === "comment" ? "Комментарий" : "Статус"}</span>
+                            <span className={styles.notificationRight}>
+                              <time dateTime={item.occurred_at}>{formatTime(item.occurred_at)}</time>
+                              {!item.read_at ? <span className={styles.unreadDot} aria-label="Непрочитано" /> : <CheckCheck size={13} aria-label="Прочитано" />}
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/* ---------------------------------------------------------------- список */
+
+type TicketRow = {
+  key: string;
+  id: number;
+  number: string;
+  topic: string;
+  title: string;
+  statusLabel: string;
+  status: Status;
+  created: string;
+  createdTs: number;
+  href: string;
+} & Record<string, unknown>;
+
+function ticketColumns(): DataColumn<TicketRow>[] {
+  return [
+    {
+      key: "number",
+      label: "№",
+      width: 76,
+      render: (_, row) => (
+        <Link href={row.href} className={styles.muted}>
+          №{row.number}
+        </Link>
+      ),
+    },
+    { key: "topic", label: "Тема", width: 240, sortable: true },
+    {
+      key: "title",
+      label: "Заголовок",
+      sortable: true,
+      render: (_, row) => <Link href={row.href}>{row.title}</Link>,
+    },
+    {
+      key: "statusLabel",
+      label: "Статус",
+      width: 150,
+      render: (_, row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: "createdTs",
+      label: "Создана",
+      numeric: true,
+      width: 190,
+      render: (_, row) => <time dateTime={row.created}>{formatTime(row.created)}</time>,
+    },
+    {
+      key: "open",
+      label: "",
+      width: 54,
+      render: (_, row) => (
+        <Link href={row.href} aria-label={`Открыть заявку №${row.number}`}>
+          <ArrowUpRight size={17} />
+        </Link>
+      ),
+    },
+  ];
+}
+
+function PageHead({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className={styles.pageHead}>
+      <div>
+        <p className={styles.eyebrow}>{eyebrow}</p>
+        <h1 className={styles.title}>{title}</h1>
+        <p className={styles.description}>{description}</p>
+      </div>
+      {action && <div className={styles.headActions}>{action}</div>}
+    </div>
+  );
+}
+
+function StatStrip({ tickets }: { tickets: Ticket[] }) {
+  const stats = [
+    { label: "Всего", value: tickets.length, tone: "neutral" as const },
+    { label: "Новые", value: tickets.filter(t => t.status === "new").length, tone: "info" as const },
+    { label: "В работе", value: tickets.filter(t => t.status === "in_progress").length, tone: "warning" as const },
+    { label: "Выполнено", value: tickets.filter(t => t.status === "done").length, tone: "success" as const },
+  ];
+  return (
+    <div className={styles.statStrip} aria-label="Сводка по заявкам">
+      {stats.map(stat => (
+        <div className={styles.statChip} key={stat.label}>
+          <span className={`${styles.statDot} ${styles[`statDot${stat.tone}`]}`} aria-hidden="true" />
+          <span className={styles.statLabel}>{stat.label}</span>
+          <strong className={styles.statValue}>{stat.value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Админка: плотный ops-интерфейс — таблица, фильтры, сводка. */
+function AdminTickets({ tickets, error, reload, initialStatus }: { tickets: Ticket[]; error?: string; reload: () => void; initialStatus: string }) {
+  const [statusTab, setStatusTab] = useState(initialStatus);
+  const [topic, setTopic] = useState("");
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return tickets
+      .filter(ticket => statusTab === "all" || ticket.status === statusTab)
+      .filter(ticket => !topic || ticket.topic === topic)
+      .filter(ticket => !needle || `${ticket.id} ${ticket.title} ${topics[ticket.topic]}`.toLowerCase().includes(needle));
+  }, [tickets, statusTab, topic, query]);
+
+  const rows: TicketRow[] = filtered.map(ticket => ({
+    key: String(ticket.id),
+    id: ticket.id,
+    number: String(ticket.id),
+    topic: topics[ticket.topic],
+    title: ticket.title,
+    statusLabel: statuses[ticket.status],
+    status: ticket.status,
+    created: ticket.created_at,
+    createdTs: new Date(ticket.created_at).getTime(),
+    href: `/admin/tickets/${ticket.id}`,
+  }));
+
+  return (
+    <>
+      <PageHead
+        eyebrow="Администрирование"
+        title="Очередь заявок"
+        description="Плотный рабочий стол поддержки: фильтры, сортировка и обработка обращений."
+        action={
+          <Button variant="secondary" size="sm" onClick={reload}>
+            Обновить
+          </Button>
+        }
+      />
+
+      <StatStrip tickets={tickets} />
+
+      <section className={styles.panel} aria-label="Очередь обращений">
+        <div className={styles.adminToolbar}>
+          <SegmentedControl
+            className={styles.adminTabs}
+            label="Фильтр по статусу"
+            options={statusOptions}
+            value={statusTab}
+            onValueChange={setStatusTab}
+          />
+          <div className={styles.adminFilters}>
+            <Select
+              ariaLabel="Тема"
+              value={topic}
+              onChange={setTopic}
+              className={styles.topicSelect}
+              options={[{ value: "", label: "Все темы" }, ...Object.entries(topics).map(([key, value]) => ({ value: key, label: value }))]}
+            />
+            <span className={styles.recordCount}>{filtered.length} заявок</span>
+            <div className={styles.searchSlot}>
+              <SearchField label="Найти заявку" value={query} onValueChange={setQuery} placeholder="Номер, заголовок" />
+            </div>
+          </div>
+        </div>
+
+        <Failure message={error} retry={reload} />
+
+        {rows.length > 0 ? (
+          <div className={styles.tableArea}>
+            <SortableDataTable
+              rows={rows}
+              columns={ticketColumns()}
+              rowKey="key"
+              caption="Все заявки"
+              defaultSort={{ key: "createdTs", direction: "desc" }}
+              itemName={{ one: "заявка", other: "заявок" }}
+            />
+          </div>
+        ) : (
+          <EmptyState
+            icon={<SearchX size={22} />}
+            title="Заявок не найдено"
+            description="Измените статус, тему или поисковый запрос."
+            action={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setTopic("");
+                  setStatusTab("all");
+                }}
+              >
+                Сбросить фильтры
+              </Button>
+            }
+          />
+        )}
+      </section>
+    </>
+  );
+}
+
+/** Пользователь: карточки обращений, меньше плотности, акцент на создании и статусе. */
+function UserTickets({ tickets, error, reload, initialStatus, loading }: { tickets: Ticket[]; error?: string; reload: () => void; initialStatus: string; loading?: boolean }) {
+  const [statusTab, setStatusTab] = useState(initialStatus);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return tickets
+      .filter(ticket => statusTab === "all" || ticket.status === statusTab)
+      .filter(ticket => !needle || `${ticket.id} ${ticket.title} ${topics[ticket.topic]}`.toLowerCase().includes(needle));
+  }, [tickets, statusTab, query]);
+
+  return (
+    <>
+      <PageHead
+        eyebrow="Центр поддержки"
+        title="Мои заявки"
+        description="Создайте обращение и следите за решением. Ответы поддержки приходят в уведомления."
+        action={
+          <Button onClick={() => navigate("/user/new")}>
+            <Plus size={16} />
+            Создать заявку
+          </Button>
+        }
+      />
+
+      <div className={styles.userToolbar}>
+        <SegmentedControl
+          label="Фильтр по статусу"
+          options={statusOptions}
+          value={statusTab}
+          onValueChange={setStatusTab}
+        />
+        <div className={styles.userSearch}>
+          <SearchField label="Найти заявку" value={query} onValueChange={setQuery} placeholder="Номер или заголовок" />
+        </div>
+      </div>
+
+      <Failure message={error} retry={reload} />
+
+      {loading && tickets.length === 0 ? (
+        <div className={styles.cardGrid}>
+          <Skeleton lines={4} />
+          <Skeleton lines={4} />
+          <Skeleton lines={4} />
+        </div>
+      ) : filtered.length > 0 ? (
+        <div className={styles.cardGrid}>
+          {filtered.map((ticket, index) => (
+            <Link
+              key={ticket.id}
+              href={`/user/tickets/${ticket.id}`}
+              className={styles.ticketCard}
+              style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
+            >
+              <div className={styles.ticketCardTop}>
+                <span className={styles.ticketCardNum}>№{ticket.id}</span>
+                <StatusBadge status={ticket.status} />
+              </div>
+              <strong className={styles.ticketCardTitle}>{ticket.title}</strong>
+              <p className={styles.ticketCardTopic}>{topics[ticket.topic]}</p>
+              <div className={styles.ticketCardFoot}>
+                <time dateTime={ticket.updated_at}>{formatTime(ticket.updated_at)}</time>
+                <span className={styles.ticketCardOpen}>
+                  Открыть <ArrowUpRight size={14} />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={query || statusTab !== "all" ? <SearchX size={22} /> : <TicketIcon size={22} />}
+          title={query || statusTab !== "all" ? "Ничего не нашлось" : "Здесь начнётся решение"}
+          description={
+            query || statusTab !== "all"
+              ? "Попробуйте другой номер, заголовок или статус."
+              : "Создайте первую заявку. Опишите, что произошло, — поддержка поможет."
+          }
+          action={
+            query || statusTab !== "all" ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setStatusTab("all");
+                }}
+              >
+                Сбросить фильтры
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => navigate("/user/new")}>
+                <Plus size={16} />
+                Создать первую заявку
+              </Button>
+            )
+          }
+        />
+      )}
+    </>
+  );
+}
+
+/* --------------------------------------------------------------- создание */
+
+function CreateTicket() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [topic, setTopic] = useState("");
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    const form = new FormData(event.currentTarget);
+    const title = String(form.get("title")).trim();
+    const description = String(form.get("description")).trim();
+    if (!topic || !title || !description) {
+      setError("Выберите тему и заполните заголовок с описанием: пробелы не считаются текстом.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const ticket = await request<Ticket>("/user/tickets", { topic, title, description });
+      navigate(`/user/tickets/${ticket.id}`);
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Link href="/user" className={shell.backLink}>
+        <ArrowLeft size={16} />
+        Мои заявки
+      </Link>
+      <PageHead
+        eyebrow="Новое обращение"
+        title="Чем можем помочь?"
+        description="Выберите тему и расскажите о проблеме. Все поля обязательны."
+      />
+      <div className={styles.detailGrid}>
+        <section className={styles.formCard}>
+          <h2>Новая заявка</h2>
+          <form className={styles.formGrid} onSubmit={event => void submit(event)}>
+            <Select
+              label="Тема"
+              ariaLabel="Тема"
+              placeholder="Выберите тему обращения"
+              value={topic}
+              onChange={setTopic}
+              options={Object.entries(topics).map(([key, value]) => ({ value: key, label: value }))}
+            />
+            <Input label="Заголовок" name="title" placeholder="Коротко опишите проблему" maxLength={200} required />
+            <label className={styles.field}>
+              Описание
+              <textarea
+                name="description"
+                placeholder="Что произошло? Что вы ожидали? Какие действия уже пробовали?"
+                rows={7}
+                maxLength={10000}
+                required
+              />
+              <span className={styles.fieldHint}>Чем больше деталей, тем быстрее найдём решение.</span>
+            </label>
+            <Failure message={error} />
+            <div className={styles.formActions}>
+              <Button type="submit" loading={busy} disabled={busy}>
+                <Plus size={17} />
+                Отправить заявку
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => navigate("/user")}>
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </section>
+        <aside className={styles.tipCard}>
+          <CircleHelp size={22} />
+          <h2>Детали помогают решить быстрее</h2>
+          <p>Укажите название сервиса и шаги, после которых возникла проблема.</p>
+          <p>Ответы поддержки и изменения статуса появятся в карточке заявки и в уведомлениях.</p>
+        </aside>
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------ карточка */
+
+function TicketCard({ role, id }: { role: Role; id: string }) {
+  const { data: ticket, error, reload } = useResource<TicketDetail>(`/${role}/tickets/${id}`);
+  const [busy, setBusy] = useState(false);
+  const [mutationError, setMutationError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const mutate = async (event: FormEvent<HTMLFormElement>, target?: Status, required = true) => {
+    event.preventDefault();
+    if (busy) return;
+    const form = event.currentTarget;
+    const comment = String(new FormData(form).get("comment") ?? "").trim();
+    if (required && !comment) {
+      setMutationError("Напишите комментарий: он не может состоять из пробелов.");
+      return;
+    }
+    setBusy(true);
+    setMutationError("");
+    setSuccess("");
+    try {
+      await request(`/${role}/tickets/${id}/${target ? "status" : "comments"}`, target ? { status: target, comment } : { comment });
+      form.reset();
+      reload();
+      setSuccess(target ? "Статус заявки обновлён" : "Комментарий добавлен");
+    } catch (error) {
+      setMutationError((error as Error).message);
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const action = ticket ? nextAction(role, ticket.status) : null;
+
+  return (
+    <>
+      <Link href={`/${role}`} className={shell.backLink}>
+        <ArrowLeft size={16} />
+        {role === "user" ? "Мои заявки" : "Все заявки"}
+      </Link>
+      <Failure message={error} retry={reload} />
+      {!ticket && !error && <Loading />}
+      {ticket && (
+        <>
+          <PageHead
+            eyebrow={`Заявка №${ticket.id} · ${topics[ticket.topic]}`}
+            title={ticket.title}
+            description={`Создана ${formatTime(ticket.created_at)}`}
+            action={<StatusBadge status={ticket.status} />}
+          />
+          <div className={styles.detailGrid}>
+            <div className={styles.stack}>
+              <section className={styles.panel}>
+                <h2>Описание заявки</h2>
+                <p className={styles.bodyText}>{ticket.description}</p>
+              </section>
+
+              <section className={styles.panel}>
+                <h2>
+                  История и комментарии <span className={styles.muted}>{ticket.history.length}</span>
+                </h2>
+                <ol className={styles.timeline}>
+                  {ticket.history.map(entry => (
+                    <li key={entry.id} className={styles.timelineItem}>
+                      <div className={`${styles.timelineIcon} ${entry.actor === "admin" ? styles.timelineIconAdmin : ""}`}>
+                        {entry.kind === "comment" ? (
+                          <MessageSquare size={16} />
+                        ) : entry.kind === "created" ? (
+                          <Plus size={16} />
+                        ) : (
+                          <Check size={16} />
+                        )}
+                      </div>
+                      <div className={styles.timelineBody}>
+                        <div className={styles.entryHead}>
+                          <strong>{authors[entry.actor]}</strong>
+                          <time dateTime={entry.created_at}>{formatTime(entry.created_at)}</time>
+                        </div>
+                        <p className={styles.eventLabel}>
+                          {entry.kind === "created"
+                            ? "Создал заявку"
+                            : entry.kind === "comment"
+                              ? "Добавил комментарий"
+                              : entry.actor === "user"
+                                ? "Вернул заявку в работу"
+                                : "Изменил статус"}
+                          {entry.to_status && <> · {statuses[entry.to_status]}</>}
+                        </p>
+                        {entry.comment && <p className={styles.comment}>{entry.comment}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                <form className={styles.commentForm} onSubmit={event => void mutate(event)}>
+                  <label className={styles.field}>
+                    Ваш комментарий
+                    <textarea name="comment" rows={3} maxLength={10000} required placeholder="Дополните обращение или задайте вопрос" />
+                  </label>
+                  <div>
+                    <Button type="submit" variant="secondary" loading={busy} disabled={busy}>
+                      <MessageSquare size={16} />
+                      Добавить комментарий
+                    </Button>
+                  </div>
+                </form>
+              </section>
+              <Failure message={mutationError} />
+              <p role="status" className={styles.success}>
+                {success}
+              </p>
+            </div>
+
+            <aside className={styles.stack}>
+              <section className={styles.panel}>
+                <h2>О заявке</h2>
+                <dl className={styles.facts}>
+                  <div>
+                    <dt>Номер</dt>
+                    <dd>№{ticket.id}</dd>
+                  </div>
+                  <div>
+                    <dt>Тема</dt>
+                    <dd>{topics[ticket.topic]}</dd>
+                  </div>
+                  <div>
+                    <dt>Статус</dt>
+                    <dd>
+                      <StatusBadge status={ticket.status} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Создана</dt>
+                    <dd>{formatTime(ticket.created_at)}</dd>
+                  </div>
+                  <div>
+                    <dt>Обновлена</dt>
+                    <dd>{formatTime(ticket.updated_at)}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              {action && (
+                <section className={`${styles.panel} ${styles.actionCard}`}>
+                  <form
+                    className={styles.formGrid}
+                    key={ticket.status}
+                    onSubmit={event => void mutate(event, action.status, action.required)}
+                  >
+                    <h2>{action.label}</h2>
+                    <p className={styles.muted}>
+                      {action.status === "done"
+                        ? "Опишите результат работы. Пользователь получит уведомление с вашим ответом."
+                        : role === "user"
+                          ? "Расскажите, что осталось нерешённым. Поддержка продолжит работу над заявкой."
+                          : "Пользователь увидит, что его обращением уже занимаются."}
+                    </p>
+                    <label className={styles.field}>
+                      {action.field}
+                      <textarea name="comment" rows={4} maxLength={10000} required={action.required} />
+                    </label>
+                    <div>
+                      <Button type="submit" loading={busy} disabled={busy}>
+                        {action.label}
+                        <ChevronRight size={16} />
+                      </Button>
+                    </div>
+                  </form>
+                </section>
+              )}
+
+              {!action && (
+                <div className={styles.tipCard}>
+                  <Headphones size={22} />
+                  <h2>{ticket.status === "done" ? "Работа завершена" : "Поддержка на связи"}</h2>
+                  <p>
+                    {ticket.status === "done"
+                      ? "Результат сохранён в истории. Если вопрос остался, пользователь сможет вернуть заявку в работу."
+                      : "Ответ администратора появится здесь автоматически. Дополнительные сведения можно оставить в комментарии."}
+                  </p>
+                </div>
+              )}
+            </aside>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------- app */
+
+export default function App() {
+  const path = usePath();
+  const search = useSearch();
+  const role: Role = path.startsWith("/admin") ? "admin" : "user";
+  const match = path.match(/^\/(user|admin)\/tickets\/(\d+)\/?$/);
+  const isCreate = path === "/user/new";
+  const { theme, applyTheme } = useAppliedTheme();
+
+  const [collapsed, setCollapsed] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(true);
+
+  const { data: listData, error: listError, reload: reloadList } = useResource<{ items: Ticket[] }>(`/${role}/tickets`, 4000);
+  const tickets = useMemo(() => listData?.items ?? [], [listData]);
+  const [debugBusy, setDebugBusy] = useState<"notifications" | "tickets" | "seed" | null>(null);
+
+  const seedDemo = async () => {
+    if (!window.confirm("Добавить набор демо-заявок в разных статусах?")) return;
+    setDebugBusy("seed");
+    const seeds = [
+      { topic: "access", title: "Не приходит письмо для сброса пароля", description: "Пытаюсь восстановить доступ к личному кабинету, письмо не приходит уже 20 минут. Проверял папку «Спам»." },
+      { topic: "service", title: "Ошибка 500 при выгрузке отчёта", description: "При экспорте отчёта за октябрь появляется ошибка 500. Повторяется на двух разных браузерах." },
+      { topic: "other", title: "Неверные данные в профиле", description: "В профиле указан старый номер телефона, изменить через интерфейс не получается." },
+      { topic: "access", title: "Доступ к разделу «Аналитика»", description: "После смены роли пропал доступ к разделу аналитики. Нужен доступ для еженедельного отчёта." },
+      { topic: "service", title: "Медленно открывается список заявок", description: "Список загружается более 10 секунд, особенно если выбрать фильтр «Все темы»." },
+      { topic: "other", title: "Предложение по улучшению интерфейса", description: "Хотелось бы видеть сохранённые фильтры в списке заявок, чтобы не настраивать их каждый раз." },
+    ];
+    try {
+      const created: Ticket[] = [];
+      for (const seed of seeds) {
+        created.push(await request<Ticket>("/user/tickets", seed));
+      }
+      const [first, second, third, fourth, fifth] = created;
+      if (second) {
+        await request(`/admin/tickets/${second.id}/status`, { status: "in_progress", comment: "" });
+      }
+      if (third) {
+        await request(`/admin/tickets/${third.id}/status`, { status: "in_progress", comment: "" });
+        await request(`/admin/tickets/${third.id}/comments`, { comment: "Проверяю по логам, воспроизвёл на тестовых данных." });
+        await request(`/admin/tickets/${third.id}/status`, { status: "done", comment: "Исправили экспорт, отчёт выгружается корректно." });
+      }
+      if (fourth) {
+        await request(`/admin/tickets/${fourth.id}/status`, { status: "in_progress", comment: "" });
+        await request(`/admin/tickets/${fourth.id}/status`, { status: "done", comment: "Доступ выдан, проверьте раздел аналитики." });
+        await request(`/user/tickets/${fourth.id}/status`, { status: "in_progress", comment: "Раздел открылся, но данных за октябрь нет. Возвращаю в работу." });
+      }
+      if (fifth && first) {
+        await request(`/admin/tickets/${fifth.id}/status`, { status: "in_progress", comment: "" });
+        await request(`/admin/tickets/${fifth.id}/comments`, { comment: "Проверяем производительность фильтра, нужен профиль запроса." });
+      }
+      reloadList();
+      window.location.reload();
+    } catch (error) {
+      window.alert((error as Error).message);
+    } finally {
+      setDebugBusy(null);
+    }
+  };
+
+  const resetData = async (kind: "notifications" | "tickets") => {
+    const title = kind === "tickets" ? "Удалить ВСЕ заявки вместе с историей и уведомлениями?" : "Удалить все уведомления?";
+    if (!window.confirm(title)) return;
+    setDebugBusy(kind);
+    try {
+      await request(`/debug/${kind}`, {});
+      reloadList();
+      window.location.reload();
+    } catch (error) {
+      window.alert((error as Error).message);
+    } finally {
+      setDebugBusy(null);
+    }
+  };
+
+  const searchItems = useMemo(
+    () =>
+      tickets.map(ticket => ({
+        id: `ticket:${ticket.id}`,
+        title: `№${ticket.id} · ${ticket.title}`,
+        meta: topics[ticket.topic],
+        group: "Заявки",
+      })),
+    [tickets],
+  );
+
+  const activeId = isCreate ? "new" : role;
+  const statusParam = new URLSearchParams(search).get("status") ?? "all";
+  const initialStatus = ["all", "new", "in_progress", "done"].includes(statusParam) ? statusParam : "all";
+  const counts = {
+    total: tickets.length,
+    new: tickets.filter(ticket => ticket.status === "new").length,
+    in_progress: tickets.filter(ticket => ticket.status === "in_progress").length,
+    done: tickets.filter(ticket => ticket.status === "done").length,
+  };
+
+  return (
+    <div className={`${shell.shell} ${collapsed ? styles.shellCollapsed : ""}`}>
+      <aside className={`${shell.sidebar} ${collapsed ? styles.sidebarCollapsed : ""}`}>
+        <div className={styles.sidebarTop}>
+          <Link className={shell.brand} href={`/${role}`} aria-label="X5, поддержка">
+            <span className={`${shell.brandMark} ${styles.brandX5}`} aria-hidden="true">
+              X5
+            </span>
+            <span className={`${shell.brandName} ${styles.brandText}`}>Поддержка</span>
+          </Link>
+          <button
+            type="button"
+            className={styles.collapseButton}
+            onClick={() => setCollapsed(value => !value)}
+            aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
+            title={collapsed ? "Развернуть меню" : "Свернуть меню"}
+          >
+            {collapsed ? <PanelLeft size={17} /> : <PanelLeftClose size={17} />}
+          </button>
+        </div>
+
+        <nav className={shell.nav} aria-label="Основная навигация">
+          <p className={`${shell.navGroupLabel} ${styles.navGroupText}`}>Работа</p>
+          {role === "user" ? (
+            <>
+              <Link
+                href="/user"
+                className={`${shell.navItem} ${styles.navLink} ${activeId === "user" ? shell.navItemActive : ""}`}
+                aria-current={activeId === "user" ? "page" : undefined}
+              >
+                <ClipboardList width={17} height={17} strokeWidth={1.75} aria-hidden="true" />
+                <span className={styles.navText}>Мои заявки</span>
+              </Link>
+              <Link
+                href="/user/new"
+                className={`${shell.navItem} ${styles.navLink} ${activeId === "new" ? shell.navItemActive : ""}`}
+                aria-current={activeId === "new" ? "page" : undefined}
+              >
+                <Plus width={17} height={17} strokeWidth={1.75} aria-hidden="true" />
+                <span className={styles.navText}>Новая заявка</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/admin"
+                className={`${shell.navItem} ${styles.navLink} ${activeId === "admin" && initialStatus === "all" ? shell.navItemActive : ""}`}
+                aria-current={activeId === "admin" ? "page" : undefined}
+              >
+                <ClipboardList width={17} height={17} strokeWidth={1.75} aria-hidden="true" />
+                <span className={styles.navText}>Все заявки</span>
+                <span className={styles.navCount}>{counts.total}</span>
+              </Link>
+              <Link href="/admin?status=new" className={`${shell.navItem} ${styles.navLink} ${initialStatus === "new" ? shell.navItemActive : ""}`}>
+                <InboxIcon width={17} height={17} strokeWidth={1.75} aria-hidden="true" />
+                <span className={styles.navText}>Новые</span>
+                <span className={styles.navCount}>{counts.new}</span>
+              </Link>
+              <Link href="/admin?status=in_progress" className={`${shell.navItem} ${styles.navLink} ${initialStatus === "in_progress" ? shell.navItemActive : ""}`}>
+                <Clock3 width={17} height={17} strokeWidth={1.75} aria-hidden="true" />
+                <span className={styles.navText}>В работе</span>
+                <span className={styles.navCount}>{counts.in_progress}</span>
+              </Link>
+              <Link href="/admin?status=done" className={`${shell.navItem} ${styles.navLink} ${initialStatus === "done" ? shell.navItemActive : ""}`}>
+                <CheckCheck width={17} height={17} strokeWidth={1.75} aria-hidden="true" />
+                <span className={styles.navText}>Выполнено</span>
+                <span className={styles.navCount}>{counts.done}</span>
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className={styles.sidebarFoot}>
-          <div className={styles.planCard}>
-            <div className={styles.planTop}>
-              <span className={styles.planName}>Тариф Бизнес</span>
-              <Badge tone="success" size="sm" dot>
-                Активен
-              </Badge>
+          <button type="button" className={styles.recentToggle} onClick={() => setRecentOpen(value => !value)} aria-expanded={recentOpen}>
+            {recentOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <span className={styles.navText}>Недавние</span>
+          </button>
+          {recentOpen && (
+            <ul className={styles.recentList}>
+              {tickets.slice(0, 4).map(ticket => (
+                <li key={ticket.id}>
+                  <Link href={`/${role}/tickets/${ticket.id}`} className={styles.recentItem}>
+                    <span className={styles.recentNum}>№{ticket.id}</span>
+                    <span className={styles.recentTitle}>{ticket.title}</span>
+                  </Link>
+                </li>
+              ))}
+              {tickets.length === 0 && <li className={styles.recentEmpty}>Заявок пока нет</li>}
+            </ul>
+          )}
+          {!collapsed && (
+            <div className={styles.debugBlock}>
+              <p className={shell.navGroupLabel}>Отладка</p>
+              <div className={styles.debugActions}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={debugBusy === "notifications"}
+                  disabled={debugBusy !== null}
+                  onClick={() => void resetData("notifications")}
+                >
+                  Удалить все уведомления
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={debugBusy === "seed"}
+                  disabled={debugBusy !== null}
+                  onClick={() => void seedDemo()}
+                >
+                  Добавить тестовые заявки
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  loading={debugBusy === "tickets"}
+                  disabled={debugBusy !== null}
+                  onClick={() => void resetData("tickets")}
+                >
+                  Удалить все заявки
+                </Button>
+              </div>
             </div>
-            <p className={styles.planText}>8 из 12 мест занято</p>
-            <Progress value={8} max={12} label="Места в команде" showValue />
-            <Button variant="secondary" size="sm" className={styles.planButton}>
-              Управлять тарифом
-            </Button>
-          </div>
-
-          <UserMenu
-            user={{ name: "Анна Соколова", email: "anna@orbita.app", plan: "Бизнес" }}
-            status="available"
-            items={[
-              { label: "Профиль", keys: ["G", "P"] },
-              { label: "Настройки", keys: ["G", "S"] },
-              { label: "Помощь", keys: ["?"] },
-            ]}
-            showName
-            align="start"
-          />
+          )}
         </div>
       </aside>
 
-      <div className={styles.mainCol}>
-        <header className={styles.topbar}>
-          <a className={styles.topBrand} href="#overview" aria-label="Орбита">
-            <Orbit width={20} height={20} strokeWidth={1.75} aria-hidden="true" />
-            <span>Орбита</span>
-          </a>
+      <div className={shell.mainCol}>
+        <header className={shell.topbar}>
+          <div className={styles.topLeft}>
+            <Link className={`${shell.topBrand} ${styles.topBrand}`} href={`/${role}`} aria-label="X5, поддержка">
+              <span className={`${styles.brandX5} ${styles.brandX5Small}`}>X5</span>
+              <span>Поддержка</span>
+            </Link>
 
-          <div className={styles.topSearch}>
+          <div className={`${shell.topSearch} ${styles.topSearchStable}`}>
             <ExpandingSearch
-              label="Поиск по метрикам и отчётам"
+              label="Поиск по заявкам"
               items={searchItems}
-              suggestions={searchSuggestions}
+              suggestions={searchItems.slice(0, 3)}
               suggestionsLabel="Недавние"
-              placeholder="Команда, метрика или отчёт"
-              emptyHint="Попробуйте другое название или домен."
+              placeholder="Номер, заголовок или тема"
+              emptyHint="Попробуйте другой номер или заголовок."
               anchor="start"
-              expandedWidth={420}
-              onSelect={(item) => {
-                if (item.id.startsWith("team:")) {
-                  setQuery(item.title);
-                  setTab("accounts");
-                  setActiveNav("teams");
-                  document.getElementById("teams")?.scrollIntoView({ behavior: "smooth" });
-                  return;
-                }
-                if (item.id.startsWith("metric:")) {
-                  setActiveNav("metrics");
-                  document.getElementById("metrics")?.scrollIntoView({ behavior: "smooth" });
-                  return;
-                }
-                if (item.id.startsWith("report:")) {
-                  setActiveNav("reports");
-                  document.getElementById("reports")?.scrollIntoView({ behavior: "smooth" });
-                  return;
-                }
-                setActiveNav("faq");
-                document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" });
+              expandedWidth={340}
+              onSelect={item => {
+                const id = item.id.replace("ticket:", "");
+                navigate(`/${role}/tickets/${id}`);
               }}
             />
           </div>
+          </div>
 
-          <div className={styles.topActions}>
-            <Tooltip content="Что нового">
-              <Button variant="ghost" size="sm" aria-label="Что нового" className={styles.iconButton}>
-                <span className={styles.bell}>
-                  <Bell width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-                  <span className={styles.bellDot} aria-hidden="true" />
-                </span>
-              </Button>
-            </Tooltip>
-            <ThemeSwitch
-              theme={theme}
-              iconOnly
-              variant="reveal"
-              label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
-              onThemeChange={(next, _variant, trigger) => applyTheme(next, trigger)}
-            />
-            <Button variant="secondary" size="sm" className={styles.signIn}>
-              Войти
+          <div className={styles.roleSlot}>
+            <div className={styles.roleSwitch} data-role={role} role="tablist" aria-label="Режим работы">
+              <Link
+                href={match ? `/user/tickets/${match[2]}` : "/user"}
+                className={role === "user" ? styles.roleSwitchActive : undefined}
+                aria-current={role === "user" ? "page" : undefined}
+              >
+                Пользователь
+              </Link>
+              <Link
+                href={match ? `/admin/tickets/${match[2]}` : "/admin"}
+                className={role === "admin" ? styles.roleSwitchActive : undefined}
+                aria-current={role === "admin" ? "page" : undefined}
+              >
+                Администратор
+              </Link>
+            </div>
+          </div>
+
+          <div className={styles.topActionsRight}>
+            <div className={styles.notifySlot}>{role === "user" && <Notifications />}</div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className={styles.themeButton}
+              aria-label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
+              aria-pressed={theme === "dark"}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => applyTheme(theme === "light" ? "dark" : "light")}
+            >
+              {theme === "light" ? <Moon size={16} strokeWidth={1.75} /> : <Sun size={16} strokeWidth={1.75} />}
             </Button>
           </div>
         </header>
 
-        <nav className={styles.mobileNav} aria-label="Разделы страницы">
-          {navItems.map((item) => (
-            <a
-              key={item.id}
-              href={item.href}
-              className={`${styles.mobileNavLink} ${activeNav === item.id ? styles.mobileNavLinkActive : ""}`}
-              onClick={() => setActiveNav(item.id)}
-            >
-              {item.label}
-            </a>
-          ))}
+        <nav className={shell.mobileNav} aria-label="Разделы">
+          <Link href="/user" className={shell.mobileNavLink}>
+            Пользователь
+          </Link>
+          <Link href="/admin" className={shell.mobileNavLink}>
+            Администратор
+          </Link>
         </nav>
 
-        <main className={styles.page}>
-          {/* ----------------------------- герой ----------------------------- */}
-          <section id="overview" className={styles.hero}>
-            <div className={styles.heroCopy}>
-              <h1 className={styles.heroTitle}>
-                Пульт управления
-                <br />
-                продуктом
-              </h1>
-              <p className={styles.heroLead}>
-                Орбита собирает метрики, релизы и обратную связь в один рабочий экран. Команда видит, что происходит
-                сейчас, и не тратит утро на сборку отчётов.
-              </p>
-              <div className={styles.heroActions}>
-                <Button size="lg" onClick={() => document.getElementById("lead")?.scrollIntoView({ behavior: "smooth" })}>
-                  Начать бесплатно
-                  <ArrowRight width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={() => document.getElementById("reports")?.scrollIntoView({ behavior: "smooth" })}
-                >
-                  <Play width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
-                  Смотреть демо
-                </Button>
-              </div>
-              <div className={styles.heroMeta}>
-                <AvatarGroup members={teamMembers} max={4} size="md" label="Команды на орбите" />
-                <p>
-                  <strong>1 284 команды</strong> уже собрали свой пульт
-                </p>
-              </div>
-              <p className={styles.heroNote}>14 дней полного доступа. Без карты и звонков.</p>
-            </div>
-
-            <aside className={styles.liveCard} aria-label="Состояние сервиса">
-              <div className={styles.liveHead}>
-                <div>
-                  <p className={styles.liveTitle}>Состояние сервиса</p>
-                  <p className={styles.liveSub}>Москва, 21:33</p>
-                </div>
-                <Badge tone="success" size="sm" dot>
-                  В норме
-                </Badge>
-              </div>
-              <Gauge
-                value={96}
-                label="Здоровье сервиса"
-                detail="SLA 99,98% за 30 дней"
-                thresholds={[
-                  { from: 0, tone: "warning", label: "Следим" },
-                  { from: 80, tone: "success", label: "Норма" },
-                ]}
+        <main className={shell.page}>
+          <div className={styles.pageEnter} key={path + search}>
+            {isCreate ? (
+              <CreateTicket />
+            ) : match ? (
+              <TicketCard role={role} id={match[2]} />
+            ) : path === "/" || path === "/user" ? (
+              <UserTickets tickets={tickets} error={listError} reload={reloadList} initialStatus={initialStatus} loading={!listData} />
+            ) : path === "/admin" ? (
+              <AdminTickets tickets={tickets} error={listError} reload={reloadList} initialStatus={initialStatus} />
+            ) : (
+              <EmptyState
+                icon={<InboxIcon size={22} />}
+                title="Страница не найдена"
+                description="Вернитесь к списку заявок, чтобы продолжить."
+                action={<Button onClick={() => navigate(`/${role}`)}>К заявкам</Button>}
               />
-              <div className={styles.liveSpark}>
-                <Sparkline
-                  label="Задержка API, p95"
-                  data={latency}
-                  value="128 мс"
-                  change="-14%"
-                  tone="success"
-                  height={46}
-                  interactive={false}
-                />
-              </div>
-              <ul className={styles.liveRows}>
-                <li>
-                  <span>Приём событий</span>
-                  <Badge tone="success" size="sm" dot>
-                    2,4 млн в час
-                  </Badge>
-                </li>
-                <li>
-                  <span>Экспорт отчётов</span>
-                  <Badge tone="warning" size="sm" dot>
-                    очередь 40 с
-                  </Badge>
-                </li>
-                <li>
-                  <span>Последний релиз</span>
-                  <span className={styles.liveValue}>v4.18, 14:20</span>
-                </li>
-              </ul>
-            </aside>
-          </section>
-
-          {/* ----------------------------- метрики ----------------------------- */}
-          <section id="metrics" className={styles.section} aria-labelledby="metrics-title">
-            <div className={styles.sectionHead}>
-              <div>
-                <h2 id="metrics-title" className={styles.sectionTitle}>
-                  Ключевые метрики
-                </h2>
-                <p className={styles.sectionDesc}>Все команды, последние 30 дней</p>
-              </div>
-              <span className={styles.updated}>Обновлено минуту назад</span>
-            </div>
-            <div className={styles.kpiGrid}>
-              <MetricCard label="Активные команды" value={1284} context="за последние 30 дней" change="+12%" />
-              <MetricCard label="Выручка, тыс. ₽" value={4820} context="MRR, ноябрь" change="+8,4%" />
-              <MetricCard label="Удержание, %" value={68} context="30 дней, когорта октября" change="+3,1%" />
-              <MetricCard label="Сборка отчёта, с" value={42} context="медиана за неделю" change="-16%" />
-            </div>
-          </section>
-
-          {/* ----------------------------- отчёты ----------------------------- */}
-          <section id="reports" className={styles.section} aria-labelledby="reports-title">
-            <div className={styles.sectionHead}>
-              <div>
-                <h2 id="reports-title" className={styles.sectionTitle}>
-                  Отчёты
-                </h2>
-                <p className={styles.sectionDesc}>Так выглядит рабочий экран команды после подключения</p>
-              </div>
-            </div>
-
-            <div className={styles.dashGrid}>
-              <article className={`${styles.card} ${styles.chartCard}`}>
-                <header className={styles.cardHead}>
-                  <div>
-                    <h3 className={styles.cardTitle}>Активность продукта</h3>
-                    <p className={styles.cardDesc}>События в день, все команды</p>
-                  </div>
-                  <SegmentedControl
-                    options={ranges}
-                    value={range}
-                    onValueChange={changeRange}
-                    label="Период графика"
-                  />
-                </header>
-                <div className={styles.readout}>
-                  <div className={styles.readoutValue}>
-                    <AnimatedCounter value={readout.value} locale="ru-RU" />
-                    <span>событий</span>
-                  </div>
-                  <span className={styles.readoutDate}>{readout.date}</span>
-                </div>
-                <LineChart
-                  label="События в день"
-                  data={data}
-                  series={lineSeries}
-                  height={236}
-                  loading={chartLoading}
-                  unit="событий"
-                  formatValue={(value) => compactFormat(value)}
-                  formatTick={(value) => compactFormat(value)}
-                  onActiveChange={(_index, datum) => {
-                    setActivePoint(
-                      datum ? { date: datum.label, value: datum.values.current ?? 0 } : null,
-                    );
-                  }}
-                />
-              </article>
-
-              <div className={styles.sideCol}>
-                <article className={styles.card}>
-                  <header className={styles.cardHead}>
-                    <div>
-                      <h3 className={styles.cardTitle}>Воронка за неделю</h3>
-                      <p className={styles.cardDesc}>Ключевые шаги, все команды</p>
-                    </div>
-                  </header>
-                  <div className={styles.sparkStack}>
-                    <Sparkline
-                      label="Регистрации"
-                      data={sparkData.signups}
-                      value="912"
-                      change="+18%"
-                      tone="success"
-                      height={44}
-                      interactive={false}
-                    />
-                    <Sparkline
-                      label="Оплаты"
-                      data={sparkData.payments}
-                      value="368"
-                      change="+11%"
-                      tone="accent"
-                      height={44}
-                      interactive={false}
-                    />
-                    <Sparkline
-                      label="Ошибки"
-                      data={sparkData.errors}
-                      value="41"
-                      change="-23%"
-                      tone="danger"
-                      height={44}
-                      interactive={false}
-                    />
-                  </div>
-                </article>
-
-                <article className={styles.card}>
-                  <header className={styles.cardHead}>
-                    <div>
-                      <h3 className={styles.cardTitle}>Быстрый старт в демо</h3>
-                      <p className={styles.cardDesc}>Три шага до первого отчёта</p>
-                    </div>
-                    <Badge tone={setupDone.length === 3 ? "success" : "neutral"} size="sm" dot={setupDone.length === 3}>
-                      {setupDone.length} из 3
-                    </Badge>
-                  </header>
-                  <Progress value={setupDone.length} max={3} label="Готовность демо" showValue />
-                  <ul className={styles.setupList}>
-                    {[
-                      { id: "connect", label: "Подключить источник событий" },
-                      { id: "report", label: "Собрать первый отчёт" },
-                      { id: "team", label: "Позвать команду" },
-                    ].map((step) => (
-                      <li key={step.id} className={styles.setupRow}>
-                        <span className={setupDone.includes(step.id) ? styles.setupLabelDone : styles.setupLabel}>
-                          {step.label}
-                        </span>
-                        <Switch
-                          checked={setupDone.includes(step.id)}
-                          onCheckedChange={(checked) =>
-                            setSetupDone((previous) =>
-                              checked ? [...previous, step.id] : previous.filter((id) => id !== step.id),
-                            )
-                          }
-                          aria-label={step.label}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              </div>
-
-              <article className={`${styles.card} ${styles.heatCard}`}>
-                <header className={styles.cardHead}>
-                  <div>
-                    <h3 className={styles.cardTitle}>Ритм работы</h3>
-                    <p className={styles.cardDesc}>
-                      {selectedDay ? `Выбран день ${new Date(selectedDay).toLocaleDateString("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" })}` : "События по дням за год"}
-                    </p>
-                  </div>
-                  <Badge tone="neutral" size="sm">
-                    {activityDays.length} дней
-                  </Badge>
-                </header>
-                <ActivityHeatmap
-                  days={activityDays}
-                  label="События за год"
-                  period="2026"
-                  unit={{ one: "событие", other: "событий" }}
-                  locale="ru-RU"
-                  weekStartsOn={1}
-                  selectedDate={selectedDay}
-                  onSelectDate={setSelectedDay}
-                />
-              </article>
-
-              <article className={`${styles.card} ${styles.donutCard}`}>
-                <header className={styles.cardHead}>
-                  <div>
-                    <h3 className={styles.cardTitle}>Каналы привлечения</h3>
-                    <p className={styles.cardDesc}>Новые команды за ноябрь</p>
-                  </div>
-                </header>
-                <DonutChart
-                  data={channels}
-                  label="Новые команды по каналам"
-                  unit="команд"
-                  totalLabel="Новые команды"
-                  size={188}
-                  thickness={22}
-                />
-              </article>
-            </div>
-          </section>
-
-          {/* ----------------------------- команды ----------------------------- */}
-          <section id="teams" className={styles.section} aria-labelledby="teams-title">
-            <div className={styles.sectionHead}>
-              <div>
-                <h2 id="teams-title" className={styles.sectionTitle}>
-                  Команды и релизы
-                </h2>
-                <p className={styles.sectionDesc}>Живые данные из демо-пространства</p>
-              </div>
-            </div>
-
-            <Tabs value={tab} onValueChange={setTab}>
-              <div className={styles.tableToolbar}>
-                <TabsList aria-label="Данные демо-пространства">
-                  <TabsTrigger value="accounts">Аккаунты</TabsTrigger>
-                  <TabsTrigger value="releases">Релизы</TabsTrigger>
-                </TabsList>
-                <div className={styles.tableFilters}>
-                  {tab === "accounts" ? (
-                    <>
-                      <span className={styles.tableCount}>{filteredAccounts.length} команды</span>
-                      <div className={styles.tableSearch}>
-                        <SearchField
-                          label="Найти команду"
-                          value={query}
-                          onValueChange={setQuery}
-                          placeholder="Название или домен"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <span className={styles.tableCount}>{releases.length} релиза</span>
-                  )}
-                </div>
-              </div>
-
-              <TabsContent value="accounts">
-                {filteredAccounts.length > 0 ? (
-                  <SortableDataTable
-                    rows={filteredAccounts}
-                    columns={accountColumns}
-                    rowKey="id"
-                    caption="Аккаунты на орбите"
-                    defaultSort={{ key: "mrr", direction: "desc" }}
-                    itemName={{ one: "команда", other: "команд" }}
-                  />
-                ) : (
-                  <EmptyState
-                    title="Ничего не нашлось"
-                    description={`По запросу «${query}» команд нет. Попробуйте другое название или домен.`}
-                    icon={<SearchX width={22} height={22} strokeWidth={1.75} aria-hidden="true" />}
-                    action={
-                      <Button variant="secondary" size="sm" onClick={() => setQuery("")}>
-                        Сбросить поиск
-                      </Button>
-                    }
-                  />
-                )}
-              </TabsContent>
-
-              <TabsContent value="releases">
-                <SortableDataTable
-                  rows={releases}
-                  columns={releaseColumns}
-                  rowKey="id"
-                  caption="Релизы за ноябрь"
-                  defaultSort={{ key: "date", direction: "desc" }}
-                  itemName={{ one: "релиз", other: "релизов" }}
-                />
-              </TabsContent>
-            </Tabs>
-          </section>
-
-          {/* --------------------------- возможности --------------------------- */}
-          <section id="features" className={styles.section} aria-labelledby="features-title">
-            <div className={styles.sectionHead}>
-              <div>
-                <h2 id="features-title" className={styles.sectionTitle}>
-                  Один экран вместо пяти вкладок
-                </h2>
-                <p className={styles.sectionDesc}>
-                  Метрики, релизы и решения команды живут рядом, поэтому причина и следствие не теряются.
-                </p>
-              </div>
-            </div>
-            <div className={styles.featureGrid}>
-              <div className={styles.feature}>
-                <Zap width={20} height={20} strokeWidth={1.75} aria-hidden="true" className={styles.featureIcon} />
-                <h3>Метрики без сборки</h3>
-                <p>
-                  События, выручка и удержание обновляются сами. Раз в неделю отчёт приходит на почту, без выгрузок
-                  в таблицы.
-                </p>
-              </div>
-              <div className={styles.feature}>
-                <ShieldCheck width={20} height={20} strokeWidth={1.75} aria-hidden="true" className={styles.featureIcon} />
-                <h3>Релизы под контролем</h3>
-                <p>
-                  Каждая сборка связана с изменениями метрик. Если конверсия просела, видно, какой релиз к этому
-                  привёл.
-                </p>
-              </div>
-              <div className={styles.feature}>
-                <Plug width={20} height={20} strokeWidth={1.75} aria-hidden="true" className={styles.featureIcon} />
-                <h3>Подключение за вечер</h3>
-                <p>
-                  SDK из двух строк, коннекторы к популярным хранилищам и вебхуки. Историю можно загрузить задним
-                  числом.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* ------------------------------ цифры ------------------------------ */}
-          <section className={styles.proof} aria-label="Орбита в цифрах">
-            <div className={styles.proofItem}>
-              <AnimatedCounter value={1284} animateOnView locale="ru-RU" />
-              <span>команды работают в Орбите</span>
-            </div>
-            <div className={styles.proofItem}>
-              <AnimatedCounter value={42} animateOnView suffix={" с"} locale="ru-RU" />
-              <span>до первого отчёта</span>
-            </div>
-            <div className={styles.proofItem}>
-              <AnimatedCounter value={99.98} animateOnView decimals={2} suffix="%" locale="ru-RU" />
-              <span>доступность сервиса</span>
-            </div>
-            <div className={styles.proofItem}>
-              <AnimatedCounter value={4.9} animateOnView decimals={1} suffix={" из 5"} locale="ru-RU" />
-              <span>средняя оценка команд</span>
-            </div>
-          </section>
-
-          {/* ------------------------------ вопросы ------------------------------ */}
-          <section id="faq" className={styles.faq} aria-labelledby="faq-title">
-            <div className={styles.faqIntro}>
-              <h2 id="faq-title" className={styles.sectionTitle}>
-                Вопросы и ответы
-              </h2>
-              <p className={styles.sectionDesc}>
-                Если чего-то не хватает, напишите в поддержку. Отвечает команда продукта, обычно в течение часа.
-              </p>
-              <Button variant="secondary" size="sm" className={styles.faqButton}>
-                Написать в поддержку
-              </Button>
-            </div>
-            <div className={styles.faqList}>
-              <Accordion items={faqItems} defaultOpen={0} size="lg" />
-            </div>
-          </section>
-
-          {/* -------------------------------- CTA -------------------------------- */}
-          <section id="lead" className={styles.cta} aria-labelledby="lead-title">
-            <div className={styles.ctaCopy}>
-              <h2 id="lead-title" className={styles.ctaTitle}>
-                Соберите свой пульт за вечер
-              </h2>
-              <p className={styles.ctaDesc}>
-                14 дней полного доступа, без карты и звонков. Достаточно рабочей почты, остальное покажем на первом
-                созвоне, если захотите.
-              </p>
-              <ul className={styles.ctaList}>
-                <li>
-                  <Check width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-                  Все метрики и отчёты без ограничений
-                </li>
-                <li>
-                  <Check width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-                  Перенос истории и помощь с подключением
-                </li>
-                <li>
-                  <Check width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-                  Данные остаются вашими, экспорт в один клик
-                </li>
-              </ul>
-            </div>
-            <div className={styles.ctaForm}>
-              {leadState === "sent" ? (
-                <div className={styles.ctaSuccess}>
-                  <Alert title="Письмо отправлено" tone="success">
-                    Доступ уже ждёт на {email}. Проверьте входящие через минуту.
-                  </Alert>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setLeadState("idle");
-                      setEmail("");
-                    }}
-                  >
-                    Отправить на другой адрес
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={submitLead} className={styles.form}>
-                  <Input
-                    label="Рабочая почта"
-                    type="email"
-                    name="email"
-                    placeholder="name@company.ru"
-                    description="Пришлём доступ и короткую инструкцию по подключению."
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                  />
-                  <Button type="submit" size="lg" loading={leadState === "sending"}>
-                    Начать бесплатно
-                  </Button>
-                  <p className={styles.formNote}>Без спама. Отписаться можно в один клик.</p>
-                </form>
-              )}
-            </div>
-          </section>
-
-          <footer className={styles.footer}>
-            <div className={styles.footerBrand}>
-              <span className={styles.brandMark} aria-hidden="true">
-                <Orbit width={20} height={20} strokeWidth={1.75} />
-              </span>
-              <div>
-                <p className={styles.footerName}>Орбита</p>
-                <p className={styles.footerNote}>Продуктовая аналитика для команд, которые решают быстро.</p>
-              </div>
-            </div>
-            <nav className={styles.footerLinks} aria-label="Подвал">
-              <a href="#metrics">Метрики</a>
-              <a href="#reports">Отчёты</a>
-              <a href="#teams">Команды</a>
-              <a href="#faq">Вопросы</a>
-              <a href="#lead">Доступ</a>
-            </nav>
-            <p className={styles.footerLegal}>© 2026 Орбита. Все права защищены.</p>
-          </footer>
+            )}
+          </div>
         </main>
       </div>
     </div>

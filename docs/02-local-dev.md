@@ -14,9 +14,9 @@
 
 ```bash
 cd uiarc-dashboard
-cp .env.example .env          # локальные пароли (можно оставить дефолтные)
+test -f .env || cp .env.example .env  # создать локальный env, не перезаписывая существующий
 
-make up                       # core + observability, сборка app
+make up                       # frontend + Go API + notifications + observability
 make status                   # карта сервисов и портов
 make smoke                    # проверка health-эндпоинтов и целей Prometheus
 ```
@@ -26,6 +26,10 @@ make smoke                    # проверка health-эндпоинтов и 
 - Grafana: http://localhost:3000 (`admin` / `GRAFANA_ADMIN_PASSWORD` из `.env`)
 - Prometheus: http://localhost:9090
 - Alertmanager: http://localhost:9093
+
+Локальный тикетный стек использует порт `APP_PORT` из `.env` (по умолчанию 8090).
+Миграции выполняются одноразовым сервисом `migrate` до старта API и worker.
+API и worker доступны внутри Compose сети, а UI обращается к API через `/api`.
 
 ## 3. Makefile — шпаргалка
 
@@ -39,13 +43,23 @@ make ps        # статус контейнеров
 make logs      # логи всего стека
 make smoke     # health-проверки
 make status    # карта: URL, порты, состояние
-make build     # пересобрать образ app
+make build     # пересобрать frontend, API и notifications
 make backup    # дамп Postgres в backups/
 make reset     # УДАЛИТЬ контейнеры и volumes (внимание: данные)
 make gitlab    # локальный GitLab CE + runner
 make runner    # только runner
 make gitlab-bootstrap   # первичная настройка GitLab (root, отключение регистрации)
+make test-backend       # Go integration tests с отдельной тестовой БД
+make test-frontend      # lint + unit tests + production build
+make check-tickets      # локальная API acceptance проверка полного цикла заявки
+make check-recovery     # остановка worker, проверка backlog/replay/restart; только localhost
+make check-browser     # headless браузерный acceptance сценарий
 ```
+
+Перед frontend checks установите зависимости из lockfile: `cd frontend && pnpm install
+--frozen-lockfile`. Для browser acceptance дополнительно установите Chromium командой
+`pnpm exec playwright install chromium` из `frontend/`. После этого вернитесь в корень
+репозитория для запуска `make test-frontend` или `make check-browser`.
 
 ## 4. Скрипты
 

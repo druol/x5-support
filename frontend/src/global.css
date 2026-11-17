@@ -1,8 +1,50 @@
 :root {
   --font-geist: "Geist Variable";
   --font-inter: "Inter Variable";
-  --arc-accent: oklch(51% 0.16 290);
 }
+:root {
+  --arc-accent: #14532d;
+}
+
+/* X5, светлая тема: прежние фоны проекта + зелёный акцент */
+:root[data-accent="x5"]:not([data-theme="dark"]) {
+  --accent: #14532d;
+  --accent-strong: #0b3a1f;
+  --accent-subtle: #e7f2e2;
+  --accent-foreground: #ffffff;
+  --control-on: #14532d;
+  --control-thumb-on: #ffffff;
+  --control-glyph: #ffffff;
+  --arc-accent: #14532d;
+
+  /* нейтральная база — как была до правок */
+  --background: #fafafa;
+  --surface: #ffffff;
+  --surface-muted: #f2f2f2;
+  --border: #e6e6e6;
+  --border-subtle: #efefef;
+  --border-strong: #cccccc;
+  --foreground: #161616;
+  --text-secondary: #5a5a5a;
+  --text-muted: #757575;
+  --accent-subtle: #efefef;
+}
+
+/* X5, тёмная тема: только акцентные цвета, фон/поверхности остаются стандартными */
+:root[data-theme="dark"][data-accent="x5"] {
+  --accent: #8dc63f;
+  --accent-strong: #b6e36a;
+  --accent-subtle: rgba(141, 198, 63, 0.18);
+  --accent-foreground: #0e1a0c;
+  --control-on: #8dc63f;
+  --control-thumb-on: #0e1a0c;
+  --control-glyph: #0e1a0c;
+  --arc-accent: #8dc63f;
+}
+
+
+
+
 
 *,
 *::before,
@@ -11,6 +53,8 @@
 }
 
 html {
+  /* чуть компактнее: больше информации на экране */
+  font-size: 15px;
   scroll-behavior: smooth;
   scroll-padding-top: 88px;
   background: var(--background);
@@ -57,7 +101,9 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
   letter-spacing: inherit;
 }
@@ -99,4 +145,11 @@ input {
   ::view-transition-new(root) {
     animation: none !important;
   }
+}
+
+/* X5: основные действия — фирменный тёмно-зелёный */
+button[class*="primary"] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-foreground) !important;
 }

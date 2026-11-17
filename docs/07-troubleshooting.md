@@ -136,6 +136,20 @@ A-запись `app` добавлена позже остальных — reg.ru
 
 ## Приложение
 
+### Уведомления не появляются или растёт PostgreSQL outbox
+
+Проверьте `backend`, `notifications` и `postgres` через `make status` и логи:
+`docker compose logs --tail=100 backend notifications postgres`. В Prometheus
+`support_outbox_pending` показывает число недоставленных событий, а
+`support_outbox_oldest_seconds` — возраст старейшего. В Grafana откройте
+**Support / Service**; алерт `SupportOutboxBacklog` срабатывает при задержке дольше
+5 минут.
+
+Если worker остановлен локально, сначала проверьте здоровье БД, затем запустите
+`docker compose start notifications` и дождитесь снижения backlog. Повторная доставка
+безопасна по `event_id`; не редактируйте и не удаляйте outbox вручную. Для полной
+локальной проверки outage/replay/restart используйте `make check-recovery`.
+
 ### `/healthz` отдаёт HTML вместо `ok`
 Запрос проходит через edge в Caddy приложения; healthcheck Docker использует
 внутренний порт и работает. Косметика, не влияет.

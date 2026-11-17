@@ -966,3 +966,32 @@
     flex-direction: column;
   }
 }
+
+/* ---------------------- служебные элементы сервиса заявок ---------------------- */
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.backLink:hover {
+  color: var(--accent-strong);
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.iconButton {
+  width: var(--control-height-md);
+  padding: 0;
+}

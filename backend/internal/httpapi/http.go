@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -50,6 +51,14 @@ func (a *API) Handler() http.Handler {
 			mux.HandleFunc("POST "+prefix+"/{id}/status", a.change(actor, true))
 		}
 		mux.HandleFunc("POST /api/user/tickets", a.create)
+		if os.Getenv("DEBUG_RESET") == "1" {
+			mux.HandleFunc("POST /api/debug/notifications", func(w http.ResponseWriter, r *http.Request) {
+				respond(w, map[string]bool{"ok": true}, a.Store.DeleteAllNotifications(r.Context()))
+			})
+			mux.HandleFunc("POST /api/debug/tickets", func(w http.ResponseWriter, r *http.Request) {
+				respond(w, map[string]bool{"ok": true}, a.Store.DeleteAllTickets(r.Context()))
+			})
+		}
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
