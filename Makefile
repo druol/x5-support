@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-COMPOSE_BASE := -f docker-compose.yml
+COMPOSE_BASE := docker compose -f docker-compose.yml
 COMPOSE_OBS := $(COMPOSE_BASE) -f docker-compose.observability.yml
 COMPOSE_PROD := $(COMPOSE_OBS) -f docker-compose.prod.yml
 
@@ -46,7 +46,11 @@ status:
 	./scripts/status.sh
 
 build:
-	docker compose build app
+	docker compose build app backend notifications
+
+.PHONY: test-backend
+test-backend:
+	@docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests; result=$$?; docker compose -f docker-compose.test.yml down; exit $$result
 
 gitlab:
 	docker compose -f docker-compose.gitlab.yml up -d

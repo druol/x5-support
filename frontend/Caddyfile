@@ -15,9 +15,17 @@
 		respond "ok" 200
 	}
 
-	# SPA: любой путь отдаёт index.html.
-	try_files {path} /index.html
-	file_server
+	handle /api/notifications* {
+		reverse_proxy notifications:8080
+	}
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+	# Same routes for localhost, production edge and existing tunnels.
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 
 	header {
 		X-Content-Type-Options "nosniff"

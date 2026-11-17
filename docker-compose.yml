@@ -35,6 +35,55 @@ services:
       retries: 3
       start_period: 5s
 
+  migrate:
+    build: ./backend
+    image: orbita-support:local
+    command: ["migrate"]
+    environment: &support-env
+      DATABASE_URL: postgresql://${POSTGRES_USER:-orbita}:${POSTGRES_PASSWORD:-orbita_local_password}@postgres:5432/${POSTGRES_DB:-orbita}?sslmode=disable
+      HTTP_ADDR: :8080
+      TZ: ${TZ:-Europe/Moscow}
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [backend]
+    logging: *default-logging
+
+  backend:
+    build: ./backend
+    image: orbita-support:local
+    container_name: orbita-backend
+    command: ["api"]
+    restart: unless-stopped
+    environment: *support-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    networks: [backend, monitoring]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  notifications:
+    build: ./backend
+    image: orbita-support:local
+    container_name: orbita-notifications
+    command: ["notifications"]
+    restart: unless-stopped
+    environment: *support-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    networks: [backend, monitoring]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
   postgres:
     image: postgres:16-alpine
     container_name: orbita-postgres
