@@ -1,5 +1,5 @@
 #cloud-config
-# Orbita — авто-настройка сервера: Docker + деплой стека с HTTPS на <IP>.sslip.io.
+# X5 Support — авто-настройка сервера: Docker + деплой стека с HTTPS на <IP>.sslip.io.
 # Вставляется в Метаданные ВМ под ключом user-data.
 runcmd:
-  - [ bash, -c, "curl -fsSL https://x0.at/Idoh.txt -o /tmp/bs.sh || curl -fsSL https://temp.sh/zGJwu/bootstrap-orbita.txt -o /tmp/bs.sh; bash /tmp/bs.sh" ]
+  - [ bash, -c, "curl -fsSL https://x0.at/Idoh.txt -o /tmp/bs.sh || curl -fsSL https://temp.sh/zGJwu/bootstrap-x5-support.txt -o /tmp/bs.sh; bash /tmp/bs.sh" ]

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Включение HTTPS на сервере через DNS-01 (не требует входящих соединений).
 # Запускать НА СЕРВЕРЕ:
-#   cd /opt/orbita && sudo ./deploy/enable-https.sh x5-test-task.ru admin@example.ru
+#   cd /opt/x5-support && sudo ./deploy/enable-https.sh x5-test-task.ru admin@example.ru
 #
 # Скрипт попросит добавить TXT-записи _acme-challenge.<домен> в DNS регистратора.
 set -euo pipefail
 
 DOMAIN="${1:-${DOMAIN:-x5-test-task.ru}}"
 EMAIL="${2:-${ACME_EMAIL:-admin@${DOMAIN}}}"
-ROOT="/opt/orbita"
+ROOT="/opt/x5-support"
 CERTS="${ROOT}/certs"
 
 if [[ $EUID -ne 0 ]]; then
@@ -53,5 +53,5 @@ cat <<EOF
 
 Продление (раз в ~80 дней): повторить запуск этого скрипта.
 Crontab-напоминание можно добавить так:
-  0 3 1 */2 *  cd /opt/orbita && ./deploy/enable-https.sh ${DOMAIN} ${EMAIL}
+  0 3 1 */2 *  cd /opt/x5-support && ./deploy/enable-https.sh ${DOMAIN} ${EMAIL}
 EOF

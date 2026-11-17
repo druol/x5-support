@@ -46,7 +46,7 @@ check "loki"           "http://127.0.0.1:${LOKI_PORT}/ready"
 
 echo
 echo "── Postgres / Redis ───────────────────────────────────────"
-if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-orbita}" -d "${POSTGRES_DB:-orbita}" >/dev/null 2>&1; then
+if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-x5-support}" -d "${POSTGRES_DB:-x5-support}" >/dev/null 2>&1; then
   echo "  ✅ postgres                    ready"
 else
   echo "  ❌ postgres                    not ready"

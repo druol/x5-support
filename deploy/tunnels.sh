@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Быстрые Cloudflare-туннели к приложению и Grafana — доступ с любой сети,
 # без входящих соединений к ВМ. Запускать НА СЕРВЕРЕ.
-#   cd /opt/orbita && ./deploy/tunnels.sh
+#   cd /opt/x5-support && ./deploy/tunnels.sh
 set -euo pipefail
 
 APP_PORT="${APP_PORT:-8090}"
@@ -21,7 +21,7 @@ start() {
 }
 
 echo "Публичные адреса (пока процесс жив):"
-start orbita-tunnel "$APP_PORT"
-start orbita-tunnel-grafana "$GRAFANA_PORT"
+start x5-support-tunnel "$APP_PORT"
+start x5-support-tunnel-grafana "$GRAFANA_PORT"
 echo
-echo "Если URL изменился после перезапуска: docker logs orbita-tunnel | grep trycloudflare"
+echo "Если URL изменился после перезапуска: docker logs x5-support-tunnel | grep trycloudflare"

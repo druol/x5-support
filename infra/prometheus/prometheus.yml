@@ -2,7 +2,7 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    stack: orbita
+    stack: x5-support
     env: local
 
 rule_files:

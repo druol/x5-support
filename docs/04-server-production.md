@@ -9,21 +9,21 @@
 | ВМ | `compute-vm-4-8-50-ssd-1794859500950`, id `fv48icm39f5qhc32a7jk` |
 | Ресурсы | 4 vCPU, 8 GiB RAM, 50 GiB SSD |
 | ОС | Ubuntu 24.04.5 LTS |
-| Публичный IP | `84.252.135.15` (динамический) |
-| Security Group | `orbita-sg-sec`: вход 22/80/443, выход любой |
+| Публичный IP | `81.26.180.165` (динамический) |
+| Security Group | `x5-support-sg-sec`: вход 22/80/443, выход любой |
 | Docker | 29.1.3, Compose 2.40.3 |
-| Каталог проекта | `/opt/orbita` |
+| Каталог проекта | `/opt/x5-support` |
 | Владелец файлов | `ubuntu:ubuntu` |
 
 ## 2. Доступ
 
 ```bash
 # ключ с паролем — сначала добавить в агент
-ssh-add ~/.ssh/orbita
-ssh -i ~/.ssh/orbita ubuntu@84.252.135.15
+ssh-add ~/.ssh/x5-support
+ssh -i ~/.ssh/x5-support ubuntu@81.26.180.165
 
 # для CI — отдельный ключ без пароля
-ssh -i /tmp/orbita-ci ubuntu@84.252.135.15
+ssh -i /tmp/x5-support-ci ubuntu@81.26.180.165
 ```
 
 Sudo без пароля у `ubuntu` настроен образом Yandex Cloud.
@@ -42,29 +42,29 @@ Sudo без пароля у `ubuntu` настроен образом Yandex Clou
 - `certbot/certbot` — образ для выпуска сертификата.
 - **Пользовательский crontab** (ubuntu):
   ```
-  0 3 * * * cd /opt/orbita && ./scripts/backup.sh >> /var/log/orbita-backup.log 2>&1
+  0 3 * * * cd /opt/x5-support && ./scripts/backup.sh >> /var/log/x5-support-backup.log 2>&1
   ```
 
 ## 4. Контейнеры
 
 | Контейнер | Образ | Роль |
 |---|---|---|
-| `orbita-edge` | caddy:2.9-alpine | HTTPS-edge, 80/443 |
-| `orbita-app` | orbita-dashboard:local | статика приложения |
-| `orbita-postgres` | postgres:16-alpine | БД |
-| `orbita-redis` | redis:7-alpine | кэш |
-| `orbita-postgres-exporter` | prometheuscommunity/postgres-exporter | метрики PG |
-| `orbita-redis-exporter` | oliver006/redis_exporter | метрики Redis |
-| `orbita-prometheus` | prom/prometheus:v2.55.1 | сбор метрик |
-| `orbita-alertmanager` | prom/alertmanager:v0.27.0 | алерты |
-| `orbita-grafana` | grafana/grafana:11.3.0 | дашборды |
-| `orbita-loki` | grafana/loki:3.2.1 | логи |
-| `orbita-alloy` | grafana/alloy:v1.5.1 | сбор docker-логов → Loki |
-| `orbita-node-exporter` | prom/node-exporter:v1.8.2 | метрики хоста |
-| `orbita-blackbox` | prom/blackbox-exporter:v0.25.0 | HTTP-пробы |
-| `orbita-autoheal` | willfarrell/autoheal | перезапуск unhealthy |
-| `orbita-tunnel` | cloudflare/cloudflared | туннель к app (порт 8090) |
-| `orbita-tunnel-grafana` | cloudflare/cloudflared | туннель к Grafana (3000) |
+| `x5-support-edge` | caddy:2.9-alpine | HTTPS-edge, 80/443 |
+| `x5-support-app` | x5-support-app:local | статика приложения |
+| `x5-support-postgres` | postgres:16-alpine | БД |
+| `x5-support-redis` | redis:7-alpine | кэш |
+| `x5-support-postgres-exporter` | prometheuscommunity/postgres-exporter | метрики PG |
+| `x5-support-redis-exporter` | oliver006/redis_exporter | метрики Redis |
+| `x5-support-prometheus` | prom/prometheus:v2.55.1 | сбор метрик |
+| `x5-support-alertmanager` | prom/alertmanager:v0.27.0 | алерты |
+| `x5-support-grafana` | grafana/grafana:11.3.0 | дашборды |
+| `x5-support-loki` | grafana/loki:3.2.1 | логи |
+| `x5-support-alloy` | grafana/alloy:v1.5.1 | сбор docker-логов → Loki |
+| `x5-support-node-exporter` | prom/node-exporter:v1.8.2 | метрики хоста |
+| `x5-support-blackbox` | prom/blackbox-exporter:v0.25.0 | HTTP-пробы |
+| `x5-support-autoheal` | willfarrell/autoheal | перезапуск unhealthy |
+| `x5-support-tunnel` | cloudflare/cloudflared | туннель к app (порт 8090) |
+| `x5-support-tunnel-grafana` | cloudflare/cloudflared | туннель к Grafana (3000) |
 
 У всех `restart: unless-stopped`, автостарт после перезагрузки ВМ.
 
@@ -74,12 +74,12 @@ Sudo без пароля у `ubuntu` настроен образом Yandex Clou
 ## 5. Каталоги
 
 ```
-/opt/orbita/
+/opt/x5-support/
 ├── .env                 # секреты сервера (НЕ перезаписывается деплоем)
 ├── docker-compose*.yml
 ├── frontend/, infra/, scripts/, deploy/, docs/
 ├── certs/               # Let's Encrypt: live/x5-test-task.ru/{fullchain,privkey}.pem
-└── backups/             # orbita-<ts>.sql.gz (ротация 7 дней)
+└── backups/             # x5-support-<ts>.sql.gz (ротация 7 дней)
 ```
 
 ## 6. Деплой
@@ -103,7 +103,7 @@ cp .deploy.env.example .deploy.env   # один раз, заполнить
 ## 7. HTTPS
 
 - Сертификат: **wildcard** `*.x5-test-task.ru` + apex, Let's Encrypt, DNS-01.
-- Файлы: `/opt/orbita/certs/live/x5-test-task.ru/{fullchain.pem,privkey.pem}`.
+- Файлы: `/opt/x5-support/certs/live/x5-test-task.ru/{fullchain.pem,privkey.pem}`.
 - Caddy монтирует `./certs:/certs:ro`, конфиг `infra/caddy/Caddyfile` (HTTPS).
 - HTTP (порт 80): для доменов — 301 на HTTPS, для прямого IP — reverse_proxy на app.
 - Перевыпуск/продление: `sudo ./deploy/enable-https.sh x5-test-task.ru admin@x5-test-task.ru`
@@ -115,11 +115,11 @@ cp .deploy.env.example .deploy.env   # один раз, заполнить
 
 ```bash
 # поднять/пересоздать и получить URL
-cd /opt/orbita && ./deploy/tunnels.sh
+cd /opt/x5-support && ./deploy/tunnels.sh
 
 # текущие URL
-docker logs orbita-tunnel 2>&1 | grep trycloudflare
-docker logs orbita-tunnel-grafana 2>&1 | grep trycloudflare
+docker logs x5-support-tunnel 2>&1 | grep trycloudflare
+docker logs x5-support-tunnel-grafana 2>&1 | grep trycloudflare
 ```
 
 Зачем: входящие соединения из-за рубежа до ВМ не доходят, а некоторые российские сети
@@ -134,28 +134,28 @@ docker logs orbita-tunnel-grafana 2>&1 | grep trycloudflare
 
 ```bash
 # статус
-cd /opt/orbita && docker compose -f docker-compose.yml \
+cd /opt/x5-support && docker compose -f docker-compose.yml \
   -f docker-compose.observability.yml -f docker-compose.prod.yml ps
 
 # бэкап вручную
 ./scripts/backup.sh
 
 # логи
-docker logs orbita-app --tail 100
-docker logs orbita-edge --tail 100
+docker logs x5-support-app --tail 100
+docker logs x5-support-edge --tail 100
 
 # рестарт после изменений
 docker compose ... up -d --build
 
 # проверка сертификата
-echo | openssl s_client -connect 84.252.135.15:443 -servername x5-test-task.ru 2>/dev/null \
+echo | openssl s_client -connect 81.26.180.165:443 -servername x5-test-task.ru 2>/dev/null \
   | openssl x509 -noout -dates
 ```
 
 ## 10. Перезагрузка / восстановление
 
 - Docker включён в автозапуск, контейнеры `unless-stopped` → поднимутся сами.
-- Сертификаты и данные — в volumes и `/opt/orbita/certs` (переживают перезагрузку).
+- Сертификаты и данные — в volumes и `/opt/x5-support/certs` (переживают перезагрузку).
 - `.env` на сервере — единственный источник паролей; держи его в тайне и делай бэкап.
 - При пересоздании ВМ: сменится публичный IP → обновить A-записи в reg.ru и
   `.deploy.env`/CI-переменную `DEPLOY_HOST`; сертификат и домен останутся валидными.

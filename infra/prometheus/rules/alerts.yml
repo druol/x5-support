@@ -1,5 +1,5 @@
 groups:
-  - name: orbita-availability
+  - name: x5-support-availability
     rules:
       - alert: TargetDown
         expr: up == 0
@@ -37,7 +37,7 @@ groups:
           summary: "Redis недоступен"
           description: "Redis-exporter не может подключиться к Redis."
 
-  - name: orbita-performance
+  - name: x5-support-performance
     rules:
       - alert: SupportOutboxBacklog
         expr: support_outbox_oldest_seconds{job="backend"} > 300
@@ -86,7 +86,7 @@ groups:
           summary: "Контейнер {{ $labels.container_label_com_docker_compose_service }} у лимита памяти"
           description: "Потребление памяти превысило 90% лимита."
 
-  - name: orbita-host
+  - name: x5-support-host
     rules:
       - alert: DiskSpaceLow
         expr: |

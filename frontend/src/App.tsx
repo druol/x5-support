@@ -58,7 +58,7 @@ function useAppliedTheme() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try {
-      localStorage.setItem("orbita-theme", theme);
+      localStorage.setItem("x5-support-theme", theme);
     } catch {
       /* приватный режим: тема останется только в этом сеансе */
     }

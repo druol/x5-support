@@ -7,12 +7,12 @@
 # Не запускайте одновременно с полным observability-стеком на Docker с 8 ГБ.
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: orbita-gitlab
+name: x5-support-gitlab
 
 services:
   gitlab:
     image: gitlab/gitlab-ce:17.6.2-ce.0
-    container_name: orbita-gitlab
+    container_name: x5-support-gitlab
     hostname: gitlab.local
     restart: unless-stopped
     shm_size: "256m"
@@ -51,7 +51,7 @@ services:
 
   gitlab-runner:
     image: gitlab/gitlab-runner:v17.6.1
-    container_name: orbita-gitlab-runner
+    container_name: x5-support-gitlab-runner
     restart: unless-stopped
     depends_on:
       - gitlab

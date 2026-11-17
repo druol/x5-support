@@ -75,9 +75,9 @@ Alertmanager (`infra/alertmanager/alertmanager.yml`) по умолчанию б�
 
 | Файл | Название | Что показывает |
 |---|---|---|
-| `orbita-overview.json` | Orbita / Overview | здоровье приложения, RPS, ошибки, latency, БД/Redis |
-| `orbita-infra.json` | Orbita / Infra | хост: CPU, RAM, диск, сеть, контейнеры |
-| `orbita-logs.json` | Orbita / Logs | логи из Loki (фильтры по контейнерам) |
+| `x5-support-overview.json` | X5 Support / Overview | здоровье приложения, RPS, ошибки, latency, БД/Redis |
+| `x5-support-infra.json` | X5 Support / Infra | хост: CPU, RAM, диск, сеть, контейнеры |
+| `x5-support-logs.json` | X5 Support / Logs | логи из Loki (фильтры по контейнерам) |
 | `support-service.json` | Support / Service | API request/error rate, средняя длительность, pending outbox count и возраст |
 
 Доступ:
@@ -85,7 +85,7 @@ Alertmanager (`infra/alertmanager/alertmanager.yml`) по умолчанию б�
 - локально: http://localhost:3000 (admin / `GRAFANA_ADMIN_PASSWORD`);
 - сервер: только `127.0.0.1:3000`, поэтому:
   ```bash
-  ssh -N -L 3000:127.0.0.1:3000 ubuntu@84.252.135.15
+  ssh -N -L 3000:127.0.0.1:3000 ubuntu@81.26.180.165
   # затем http://localhost:3000
   ```
 - либо через CF-туннель (см. `04-server-production.md`).
@@ -97,15 +97,15 @@ Alloy (`infra/alloy/config.alloy`) читает stdout/stderr всех docker-к
 фильтровать по `container`, `stream`, тексту.
 
 ```logql
-{container="orbita-app"} |= "error"
-{container="orbita-edge"} |= "error"
+{container="x5-support-app"} |= "error"
+{container="x5-support-edge"} |= "error"
 ```
 
 Полезные команды без Grafana:
 
 ```bash
-docker logs orbita-app --tail 100
-docker logs orbita-edge --tail 100
+docker logs x5-support-app --tail 100
+docker logs x5-support-edge --tail 100
 docker compose ... logs -f --tail=100
 ```
 
@@ -133,7 +133,7 @@ Go API и notifications worker публикуют Prometheus text format на `/
 make smoke
 
 # на сервере
-cd /opt/orbita && docker compose -f docker-compose.yml \
+cd /opt/x5-support && docker compose -f docker-compose.yml \
   -f docker-compose.observability.yml -f docker-compose.prod.yml ps
 
 # Prometheus targets UP/DOWN

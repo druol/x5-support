@@ -1,4 +1,4 @@
-name: orbita
+name: x5-support
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Базовый стек: приложение + Postgres + Redis + экспортеры метрик.
@@ -17,8 +17,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: orbita-dashboard:local
-    container_name: orbita-app
+    image: x5-support-app:local
+    container_name: x5-support-app
     restart: unless-stopped
     ports:
       - "${BIND_ADDR:-127.0.0.1}:${APP_PORT:-8080}:8080"
@@ -37,10 +37,10 @@ services:
 
   migrate:
     build: ./backend
-    image: orbita-support:local
+    image: x5-support-api:local
     command: ["migrate"]
     environment: &support-env
-      DATABASE_URL: postgresql://${POSTGRES_USER:-orbita}:${POSTGRES_PASSWORD:-orbita_local_password}@postgres:5432/${POSTGRES_DB:-orbita}?sslmode=disable
+      DATABASE_URL: postgresql://${POSTGRES_USER:-x5}:${POSTGRES_PASSWORD:-x5_local_password}@postgres:5432/${POSTGRES_DB:-x5_support}?sslmode=disable
       HTTP_ADDR: :8080
       DEBUG_RESET: ${DEBUG_RESET:-0}
       TZ: ${TZ:-Europe/Moscow}
@@ -51,8 +51,8 @@ services:
 
   backend:
     build: ./backend
-    image: orbita-support:local
-    container_name: orbita-backend
+    image: x5-support-api:local
+    container_name: x5-support-backend
     command: ["api"]
     restart: unless-stopped
     environment: *support-env
@@ -69,8 +69,8 @@ services:
 
   notifications:
     build: ./backend
-    image: orbita-support:local
-    container_name: orbita-notifications
+    image: x5-support-api:local
+    container_name: x5-support-notifications
     command: ["notifications"]
     restart: unless-stopped
     environment: *support-env
@@ -87,12 +87,12 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: orbita-postgres
+    container_name: x5-support-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-orbita}
-      POSTGRES_USER: ${POSTGRES_USER:-orbita}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orbita_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-x5_support}
+      POSTGRES_USER: ${POSTGRES_USER:-x5}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-x5_local_password}
       TZ: ${TZ:-Europe/Moscow}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -104,14 +104,14 @@ services:
       - monitoring
     logging: *default-logging
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orbita} -d ${POSTGRES_DB:-orbita}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-x5} -d ${POSTGRES_DB:-x5_support}"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: orbita-redis
+    container_name: x5-support-redis
     restart: unless-stopped
     command:
       - redis-server
@@ -137,10 +137,10 @@ services:
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.16.0
-    container_name: orbita-postgres-exporter
+    container_name: x5-support-postgres-exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-orbita}:${POSTGRES_PASSWORD:-orbita_local_password}@postgres:5432/${POSTGRES_DB:-orbita}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-x5}:${POSTGRES_PASSWORD:-x5_local_password}@postgres:5432/${POSTGRES_DB:-x5_support}?sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
@@ -151,7 +151,7 @@ services:
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.62.0
-    container_name: orbita-redis-exporter
+    container_name: x5-support-redis-exporter
     restart: unless-stopped
     environment:
       REDIS_ADDR: redis://redis:6379

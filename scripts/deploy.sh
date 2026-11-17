@@ -5,8 +5,8 @@
 #   DEPLOY_HOST=203.0.113.10
 #   DEPLOY_USER=deploy
 #   DEPLOY_PORT=22
-#   DEPLOY_PATH=/opt/orbita
-#   DEPLOY_SSH_KEY=~/.ssh/orbita_deploy
+#   DEPLOY_PATH=/opt/x5-support
+#   DEPLOY_SSH_KEY=~/.ssh/x5_deploy
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,7 +21,7 @@ fi
 : "${DEPLOY_HOST:?Укажите DEPLOY_HOST (в .deploy.env или окружении)}"
 DEPLOY_USER="${DEPLOY_USER:-deploy}"
 DEPLOY_PORT="${DEPLOY_PORT:-22}"
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/orbita}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/x5-support}"
 DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/id_ed25519}"
 
 SSH_KEY="${DEPLOY_SSH_KEY/#\~/$HOME}"
@@ -45,6 +45,6 @@ rsync -az --delete \
 
 echo "→ Сборка и запуск на сервере"
 ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
-  "cd ${DEPLOY_PATH} && docker compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml up -d --build && docker compose ps"
+  "cd ${DEPLOY_PATH} && docker compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml up -d --remove-orphans && docker compose ps"
 
 echo "✓ Деплой завершён"

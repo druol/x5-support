@@ -6,7 +6,7 @@
 #     -f docker-compose.prod.yml up -d --build
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: orbita
+name: x5-support
 
 services:
   app:
@@ -16,7 +16,7 @@ services:
 
   caddy:
     image: caddy:2.9-alpine
-    container_name: orbita-edge
+    container_name: x5-support-edge
     restart: unless-stopped
     ports:
       - "80:80"

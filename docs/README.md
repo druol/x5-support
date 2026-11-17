@@ -11,8 +11,8 @@
 | Приложение | Локальная тикетная система: React + Go API + PostgreSQL transactional outbox |
 | Исторический стенд | «Орбита» был развёрнут в Yandex Cloud; production состояние после локальной переделки не проверялось |
 | CI/CD | Историческая конфигурация сохранена, в рамках локальной переделки не менялась и не проверялась |
-| Репозиторий | локальный GitLab CE `http://localhost:8929/root/orbita-infra` |
-| Прод | `https://x5-test-task.ru` (Yandex Cloud ВМ `84.252.135.15`) |
+| Репозиторий | локальный GitLab CE `http://localhost:8929/root/x5-support-infra` |
+| Прод | `https://x5-test-task.ru` (Yandex Cloud ВМ `81.26.180.165`) |
 
 ## Навигация
 

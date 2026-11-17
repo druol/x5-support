@@ -6,7 +6,7 @@ COMPOSE_PROD := $(COMPOSE_OBS) -f docker-compose.prod.yml
 .PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset
 
 help:
-	@echo "Orbita infra:"
+	@echo "X5 Support infra:"
 	@echo "  make up        core + весь observability-стек"
 	@echo "  make core      только app + postgres + redis + экспортеры"
 	@echo "  make obs       только наблюдаемость (без app)"

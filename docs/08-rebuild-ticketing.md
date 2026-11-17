@@ -60,8 +60,8 @@ uiarc-dashboard/
   backend:
     build:
       context: ./apps/backend
-    image: orbita-backend:local
-    container_name: orbita-backend
+    image: x5-support-backend:local
+    container_name: x5-support-backend
     restart: unless-stopped
     environment:
       TZ: ${TZ:-Europe/Moscow}
@@ -143,18 +143,18 @@ migrate:
   needs: [build-backend-image]
   when: manual
   script:
-    - ssh ... "cd /opt/orbita && docker compose -f ... run --rm backend migrate"
+    - ssh ... "cd /opt/x5-support && docker compose -f ... run --rm backend migrate"
 ```
 
 Порядок: `build-backend-image → migrate → deploy`.
 
 ## 7. Переменные окружения нового приложения
 
-Добавить в `.env.example`, серверный `/opt/orbita/.env` и (при необходимости) в CI:
+Добавить в `.env.example`, серверный `/opt/x5-support/.env` и (при необходимости) в CI:
 
 ```dotenv
 # backend
-DATABASE_URL=postgres://orbita:${POSTGRES_PASSWORD}@postgres:5432/orbita?sslmode=disable
+DATABASE_URL=postgres://x5-support:${POSTGRES_PASSWORD}@postgres:5432/x5-support?sslmode=disable
 REDIS_URL=redis://redis:6379/0
 JWT_SECRET=change_me
 HTTP_ADDR=:8080
@@ -178,7 +178,7 @@ VITE_API_URL=/api
 
 - Бэкенд: добавить `/metrics` (Prometheus client) и job в `infra/prometheus/prometheus.yml`.
 - Логи: ничего не делать — Alloy уже собирает stdout всех контейнеров в Loki.
-- Grafana: добавить панели RPS/latency/error/DB в `orbita-overview.json`.
+- Grafana: добавить панели RPS/latency/error/DB в `x5-support-overview.json`.
 - Алерты: добавить правила в `infra/prometheus/rules/alerts.yml` для бизнес-метрик.
 
 ## 10. Пошаговый план переделки

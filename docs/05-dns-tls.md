@@ -10,15 +10,15 @@
 | Домен | `x5-test-task.ru` |
 | Регистратор | reg.ru |
 | DNS | NS `ns1.reg.ru` / `ns2.reg.ru` (бесплатные DNS reg.ru) |
-| Сервер | Yandex Cloud, `84.252.135.15` |
+| Сервер | Yandex Cloud, `81.26.180.165` |
 
 ### Записи в зоне reg.ru
 
 | Тип | Имя | Значение | Зачем |
 |---|---|---|---|
-| A | `@` | `84.252.135.15` | основной домен |
-| A | `app` | `84.252.135.15` | поддомен приложения (свежий, без старого кэша) |
-| A | `www` | `84.252.135.15` | классический алиас |
+| A | `@` | `81.26.180.165` | основной домен |
+| A | `app` | `81.26.180.165` | поддомен приложения (свежий, без старого кэша) |
+| A | `www` | `81.26.180.165` | классический алиас |
 | TXT | `_acme-challenge` | `5lEZkOmqulkCuWieWAkHpiXonooMSaqKHLz7SxNNKlc` | DNS-01 (wildcard) |
 | TXT | `_acme-challenge` | `7OhEjcXiYzjfuNsvNSozL3hPXiD9uAv50xUGTfWIBZA` | DNS-01 (apex) |
 
@@ -38,7 +38,7 @@
 соединения не нужны. Сертификат выпущен через certbot вручную:
 
 ```bash
-sudo docker run --rm -it -v /opt/orbita/certs:/etc/letsencrypt \
+sudo docker run --rm -it -v /opt/x5-support/certs:/etc/letsencrypt \
   certbot/certbot certonly --manual --preferred-challenges dns \
   -d "*.x5-test-task.ru" -d x5-test-task.ru \
   --email admin@x5-test-task.ru --agree-tos --no-eff-email \
@@ -46,7 +46,7 @@ sudo docker run --rm -it -v /opt/orbita/certs:/etc/letsencrypt \
 ```
 
 certbot печатает 2 значения TXT (для wildcard и apex), их добавляют в reg.ru,
-затем Enter. Итог: `/opt/orbita/certs/live/x5-test-task.ru/fullchain.pem` +
+затем Enter. Итог: `/opt/x5-support/certs/live/x5-test-task.ru/fullchain.pem` +
 `privkey.pem`, срок до 14.02.2027.
 
 Caddy монтирует `./certs:/certs:ro` и использует сертификат явно:
@@ -91,9 +91,9 @@ production-версия, иначе сайт потеряет HTTPS.
 и отдаёт свой кэш. Проверка:
 
 ```
-ns1.reg.ru (TCP)   → 84.252.135.15   ✅ (авторитативно)
-DoH Google         → 84.252.135.15   ✅
-DoH Cloudflare     → 84.252.135.15   ✅
+ns1.reg.ru (TCP)   → 81.26.180.165   ✅ (авторитативно)
+DoH Google         → 81.26.180.165   ✅
+DoH Cloudflare     → 81.26.180.165   ✅
 
 UDP 8.8.8.8        → 95.163.244.138  ❌ (перехвачено, старый кэш)
 UDP 1.1.1.1        → 95.163.244.138  ❌
@@ -137,7 +137,7 @@ dig +short x5-test-task.ru
 |---|---|---|
 | Домен | `https://x5-test-task.ru` | DNS-кэша сети клиента |
 | Поддомен | `https://app.x5-test-task.ru` | DNS (но запись новая, меньше кэша) |
-| IP | `http://84.252.135.15/` | доступности IP из сети клиента |
+| IP | `http://81.26.180.165/` | доступности IP из сети клиента |
 | Cloudflare quick tunnel | `https://next-bandwidth-ctrl-july.trycloudflare.com` | только доступности Cloudflare |
 | Короткая ссылка | `https://clck.ru/3X4WNQ` | то же (редирект на туннель) |
 
@@ -147,7 +147,7 @@ dig +short x5-test-task.ru
 ## 6. Почему не включить Cloudflare-прокси (оранжевая тучка)
 
 Cloudflare-прокси означает, что запросы к сайту идут с серверов Cloudflare (за рубежом)
-к origin `84.252.135.15`. А входящие из-за рубежа до ВМ не доходят → прокси не сможет
+к origin `81.26.180.165`. А входящие из-за рубежа до ВМ не доходят → прокси не сможет
 забрать страницу. Поэтому A-записи должны быть **DNS only** (серая тучка).
 
 ## 7. Правильное решение на будущее: Cloudflare Tunnel с доменом
@@ -163,4 +163,4 @@ Cloudflare-прокси означает, что запросы к сайту и
 ## 8. sslip.io (использовался ранее)
 
 До покупки домена использовался `<IP>.sslip.io` — DNS без настройки. Сейчас не нужен,
-но в коде остались следы (`DOMAIN=84.252.135.15.sslip.io` в истории).
+но в коде остались следы (`DOMAIN=81.26.180.165.sslip.io` в истории).

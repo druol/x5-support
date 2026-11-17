@@ -32,7 +32,7 @@ PostgreSQL и отдельный процесс доставки уведомл�
 |---|---|
 | Прод (домен) | **https://x5-test-task.ru** |
 | Прод (поддомен) | https://app.x5-test-task.ru |
-| Прод (резерв по IP) | http://84.252.135.15/ |
+| Прод (резерв по IP) | http://81.26.180.165/ |
 | Прод (туннель, работает везде) | https://next-bandwidth-ctrl-july.trycloudflare.com |
 | Короткая ссылка на туннель | https://clck.ru/3X4WNQ |
 | Grafana (туннель) | https://begin-estate-then-version.trycloudflare.com |
@@ -60,16 +60,16 @@ uiarc-dashboard/
 └── .deploy.env                # параметры деплоя с Mac (в .gitignore)
 ```
 
-Исторически production код размещался в `/opt/orbita`. Локальная переделка тикетной
+Исторически production код размещался в `/opt/x5-support`. Локальная переделка тикетной
 системы на сервер не выкладывалась, production состояние здесь не проверялось.
 
 ## 5. Доступы (где брать, не хардкодить)
 
-- **Сервер**: `ssh -i ~/.ssh/orbita ubuntu@84.252.135.15`
-  Ключ с passphrase — сначала `ssh-add ~/.ssh/orbita` (или используй ssh-agent).
+- **Сервер**: `ssh -i ~/.ssh/x5-support ubuntu@81.26.180.165`
+  Ключ с passphrase — сначала `ssh-add ~/.ssh/x5-support` (или используй ssh-agent).
 - **GitLab root**: `root` / `GITLAB_ROOT_PASSWORD` из `.env` (см. `09-credentials.local.md`).
 - **GitLab PAT** для API: лежит в локальном файле/чате, не публикуй.
-- **Grafana на сервере**: `admin` / `GRAFANA_ADMIN_PASSWORD` из `/opt/orbita/.env`.
+- **Grafana на сервере**: `admin` / `GRAFANA_ADMIN_PASSWORD` из `/opt/x5-support/.env`.
 - **CI-переменные деплоя**: GitLab → Settings → CI/CD → Variables
   (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PORT`, `DEPLOY_PATH`, `DEPLOY_SSH_KEY`).
 
@@ -81,10 +81,10 @@ uiarc-dashboard/
 |---|---|
 | Провайдер | Yandex Cloud, зона `ru-central1-d` |
 | ВМ | 4 vCPU / 8 GiB RAM / 50 GiB SSD, Ubuntu 24.04 |
-| Публичный IP | `84.252.135.15` (динамический) |
+| Публичный IP | `81.26.180.165` (динамический) |
 | instance id | `fv48icm39f5qhc32a7jk` |
-| Security Group | `orbita-sg-sec` (вход 22/80/443, выход любой) |
-| Каталог | `/opt/orbita` |
+| Security Group | `x5-support-sg-sec` (вход 22/80/443, выход любой) |
+| Каталог | `/opt/x5-support` |
 | Docker / Compose | 29.1.3 / 2.40.3 |
 | Домены | `x5-test-task.ru`, `www`, `app` → A на IP |
 | TLS | wildcard `*.x5-test-task.ru`, Let's Encrypt, DNS-01, до 14.02.2027 |
@@ -102,13 +102,13 @@ uiarc-dashboard/
    для A-записей не включить — origin будет недоступен.
 5. **Домашний провайдер пользователя подменяет UDP DNS** (порт 53) и отдаёт старый кэш.
    DoH/DoT работает. Отсюда «то открывается, то парковка» — это не сервер.
-6. **PASS-фраза SSH-ключа**: `~/.ssh/orbita` зашифрован, для CI создан отдельный
-   ключ `orbita-ci` без пароля (его private лежит в CI-переменной).
+6. **PASS-фраза SSH-ключа**: `~/.ssh/x5-support` зашифрован, для CI создан отдельный
+   ключ `x5-support-ci` без пароля (его private лежит в CI-переменной).
 7. **Caddyfile на сервере = production (HTTPS)**: локальный `infra/caddy/Caddyfile`
    синхронизирован с ним; `Caddyfile.http` — резервный HTTP-вариант. Деплой rsync
    перезаписывает Caddyfile — не сломай HTTPS.
 8. **Туннели Cloudflare** — quick tunnels, URL меняются при перезапуске контейнера.
-   Актуальные: `docker logs orbita-tunnel | grep trycloudflare` или `deploy/tunnels.sh`.
+   Актуальные: `docker logs x5-support-tunnel | grep trycloudflare` или `deploy/tunnels.sh`.
 
 Подробнее — [`07-troubleshooting.md`](07-troubleshooting.md).
 
@@ -123,8 +123,8 @@ make gitlab        # поднять локальный GitLab
 make backup        # дамп Postgres
 
 # сервер
-ssh -i ~/.ssh/orbita ubuntu@84.252.135.15
-cd /opt/orbita && docker compose \
+ssh -i ~/.ssh/x5-support ubuntu@81.26.180.165
+cd /opt/x5-support && docker compose \
   -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml ps
 
 # CI/CD не менялся и в рамках локальной переделки не проверялся.

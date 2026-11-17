@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Идемпотентная инициализация GitLab: гарантирует root-админа и закрывает регистрацию.
-# Запускать после того, как контейнер orbita-gitlab стал healthy:
+# Запускать после того, как контейнер x5-support-gitlab стал healthy:
 #   ./scripts/gitlab-bootstrap.sh
 set -euo pipefail
 
@@ -15,17 +15,17 @@ fi
 
 PASSWORD="${GITLAB_ROOT_PASSWORD:-change-me-before-use}"
 
-if ! docker inspect orbita-gitlab >/dev/null 2>&1; then
-  echo "Контейнер orbita-gitlab не найден. Сначала: make gitlab"
+if ! docker inspect x5-support-gitlab >/dev/null 2>&1; then
+  echo "Контейнер x5-support-gitlab не найден. Сначала: make gitlab"
   exit 1
 fi
 
-docker exec orbita-gitlab gitlab-rails runner "
+docker exec x5-support-gitlab gitlab-rails runner "
 u = User.find_by_username('root')
 if u.nil?
   u = Users::CreateService.new(nil, {
     username: 'root',
-    email: 'root@orbita.local',
+    email: 'root@x5-support.local',
     name: 'Administrator',
     password: '${PASSWORD}',
     password_confirmation: '${PASSWORD}'

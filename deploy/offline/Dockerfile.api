@@ -1,0 +1,7 @@
+FROM caddy:2.9-alpine
+RUN addgroup -S support && adduser -S support -G support
+COPY x5-tickets /usr/local/bin/tickets
+USER support
+EXPOSE 8080
+ENTRYPOINT ["tickets"]
+CMD ["api"]

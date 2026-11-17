@@ -49,11 +49,11 @@ Desktop или симлинк `~/.docker/cli-plugins` в используемы�
 
 Причина: конфиги после rsync с Mac имеют mode `600`, а контейнеры бегут не от root.
 
-Решение: `sudo chmod -R a+rX /opt/orbita/infra`, или `user: "0:0"` в compose
+Решение: `sudo chmod -R a+rX /opt/x5-support/infra`, или `user: "0:0"` в compose
 (в observability уже сделано для prometheus/alertmanager/grafana/loki).
 
 ### `no such service: edge`
-Имя сервиса — `caddy`, а контейнер называется `orbita-edge`. Используй
+Имя сервиса — `caddy`, а контейнер называется `x5-support-edge`. Используй
 `docker compose ... up -d --force-recreate caddy`.
 
 ## GitLab / CI
@@ -68,7 +68,7 @@ Desktop или симлинк `~/.docker/cli-plugins` в используемы�
 
 ### Runner не может собрать docker-образ
 Нужен смонтированный `/var/run/docker.sock` (есть в `docker-compose.gitlab.yml`) и
-клон по внутреннему URL `http://gitlab:8929/...` (внешняя сеть `orbita-gitlab_default`).
+клон по внутреннему URL `http://gitlab:8929/...` (внешняя сеть `x5-support-gitlab_default`).
 
 ### deploy перезаписал Caddyfile и пропал HTTPS
 Причина: rsync в деплое синхронизирует `infra/caddy/Caddyfile`. В репозитории должен
@@ -87,7 +87,7 @@ docker compose ... up -d --force-recreate caddy
 
 Проверка:
 ```bash
-dig +tcp +short @ns1.reg.ru x5-test-task.ru        # должно быть 84.252.135.15
+dig +tcp +short @ns1.reg.ru x5-test-task.ru        # должно быть 81.26.180.165
 curl -s "https://dns.google/resolve?name=x5-test-task.ru&type=A" | head
 dig +short x5-test-task.ru                          # тут может быть старый
 ```
@@ -121,16 +121,16 @@ A-запись `app` добавлена позже остальных — reg.ru
 Причина: приватный ключ под passphrase, а SSH в неинтерактивном режиме не может
 спросить пароль.
 
-Решение: `ssh-add ~/.ssh/orbita` (ввести пароль один раз) или снять пароль:
-`ssh-keygen -p -f ~/.ssh/orbita` (новый пароль — пустой). Для CI — отдельный ключ
-`orbita-ci` без пароля.
+Решение: `ssh-add ~/.ssh/x5-support` (ввести пароль один раз) или снять пароль:
+`ssh-keygen -p -f ~/.ssh/x5-support` (новый пароль — пустой). Для CI — отдельный ключ
+`x5-support-ci` без пароля.
 
 ### SSH/curl до IP таймаутит
 Возможные причины:
 1. Сеть клиента не маршрутизирует к IP (провайдер/роутер, остатки VPN-маршрутов).
-   Проверка: `traceroute 84.252.135.15`, `nc -vz 84.252.135.15 22`.
+   Проверка: `traceroute 81.26.180.165`, `nc -vz 81.26.180.165 22`.
 2. ВМ остановлена/сменился публичный IP (динамический).
-3. Security Group закрыл порт (должен быть `orbita-sg-sec` с 22/80/443).
+3. Security Group закрыл порт (должен быть `x5-support-sg-sec` с 22/80/443).
 
 Быстрый обход — Cloudflare-туннель (работает независимо от входящих).
 
@@ -165,9 +165,9 @@ A-запись `app` добавлена позже остальных — reg.ru
 Quick tunnel перегенерировал URL при рестарте контейнера.
 
 ```bash
-docker logs orbita-tunnel 2>&1 | grep trycloudflare
+docker logs x5-support-tunnel 2>&1 | grep trycloudflare
 # или пересоздать оба:
-cd /opt/orbita && ./deploy/tunnels.sh
+cd /opt/x5-support && ./deploy/tunnels.sh
 ```
 
 ### Сайт через туннель открывается, по домену нет

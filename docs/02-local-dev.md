@@ -67,7 +67,7 @@ make check-browser     # headless браузерный acceptance сценари
 |---|---|
 | `scripts/status.sh` | таблица: сервис, URL, HTTP-код; опубликованные порты; статус GitLab/runner |
 | `scripts/smoke.sh` | контейнеры + health-эндпоинты + цели Prometheus (exit code ≠ 0 при провале) |
-| `scripts/backup.sh` | `pg_dump` → `backups/orbita-<timestamp>.sql.gz`, ротация > 7 дней |
+| `scripts/backup.sh` | `pg_dump` → `backups/x5-support-<timestamp>.sql.gz`, ротация > 7 дней |
 | `scripts/deploy.sh` | деплой с Mac: rsync кода на сервер + `docker compose up -d --build` |
 | `scripts/gitlab-bootstrap.sh` | создаёт root-пользователя, отключает signup, настраивает runner |
 | `deploy/tunnels.sh` | (на сервере) поднимает quick tunnels к app и Grafana, печатает URL |
@@ -115,12 +115,12 @@ make gitlab                 # поднять GitLab CE (порт 8929) + runner
 make gitlab-bootstrap       # root-пользователь, отключить регистрацию
 
 # URL: http://localhost:8929  (root / GITLAB_ROOT_PASSWORD из .env)
-# Проект: root/orbita-infra
+# Проект: root/x5-support-infra
 # Runner: docker executor, смонтирован /var/run/docker.sock
 ```
 
 Runner собирает образы через docker.sock хоста и деплоит по SSH. Клон-URL для runner —
-`http://gitlab:8929/root/orbita-infra.git` (внутренняя сеть `orbita-gitlab_default`),
+`http://gitlab:8929/root/x5-support-infra.git` (внутренняя сеть `x5-support-gitlab_default`),
 для человека — `http://localhost:8929/...`.
 
 Если `git push` печатает `fatal: failed to store: 100001` (osxkeychain) — пуш всё равно
@@ -128,7 +128,7 @@ Runner собирает образы через docker.sock хоста и деп
 
 ## 7. Полезные мелочи
 
-- `.env` локальный и серверный — **разные**; серверный лежит в `/opt/orbita/.env`.
+- `.env` локальный и серверный — **разные**; серверный лежит в `/opt/x5-support/.env`.
 - `make reset` уничтожает данные (volumes). Использовать только осознанно.
 - Если порт 8080/5432 занят — подними `APP_PORT`/`POSTGRES_PORT` в `.env`.
 - Все UI-сервисы слушают `127.0.0.1`, наружу не торчат.

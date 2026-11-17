@@ -1,4 +1,4 @@
-name: orbita-tests
+name: x5-support-tests
 services:
   postgres-test:
     image: postgres:16-alpine

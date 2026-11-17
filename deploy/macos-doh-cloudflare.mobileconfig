@@ -17,7 +17,7 @@
             <key>PayloadDisplayName</key>
             <string>Cloudflare DoH</string>
             <key>PayloadIdentifier</key>
-            <string>ru.orbita.doh.cloudflare</string>
+            <string>ru.x5support.doh.cloudflare</string>
             <key>PayloadType</key>
             <string>com.apple.dnsSettings.managed</string>
             <key>PayloadUUID</key>
@@ -29,11 +29,11 @@
     <key>PayloadDescription</key>
     <string>Включает DNS-over-HTTPS Cloudflare для всей системы: Safari и приложения перестают видеть устаревший/подменённый DNS-кэш.</string>
     <key>PayloadDisplayName</key>
-    <string>Orbita — Cloudflare DoH</string>
+    <string>X5 Support — Cloudflare DoH</string>
     <key>PayloadIdentifier</key>
-    <string>ru.orbita.doh</string>
+    <string>ru.x5support.doh</string>
     <key>PayloadOrganization</key>
-    <string>Orbita</string>
+    <string>X5 Support</string>
     <key>PayloadRemovalDisallowed</key>
     <false/>
     <key>PayloadScope</key>

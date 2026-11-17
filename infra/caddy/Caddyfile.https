@@ -5,8 +5,8 @@
 
 # HTTP: домены редиректим на HTTPS, прямой доступ по IP оставляем рабочим.
 :80 {
-	@orbita host {$DOMAIN} *.{$DOMAIN}
-	redir @orbita https://{host}{uri} permanent
+	@x5-support host {$DOMAIN} *.{$DOMAIN}
+	redir @x5-support https://{host}{uri} permanent
 
 	reverse_proxy app:8080
 }

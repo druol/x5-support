@@ -1,4 +1,4 @@
-# Orbita — инфраструктура
+# X5 Support — инфраструктура
 
 > 📚 Полный handover для людей и AI-агентов: [`docs/`](docs/README.md)
 > (начинать с [`docs/00-ai-context.md`](docs/00-ai-context.md)).
@@ -16,12 +16,12 @@ GitLab и CI/CD.
 
 | Что | Значение |
 | --- | --- |
-| Приложение | **http://84.252.135.15/** |
-| SSH | `ssh -i ~/.ssh/orbita ubuntu@84.252.135.15` (ключ в ssh-agent) |
-| Каталог | `/opt/orbita` |
-| Grafana | `ssh -N -L 3000:127.0.0.1:3000 ubuntu@84.252.135.15` → http://localhost:3000 |
-| Prometheus | `ssh -N -L 9090:127.0.0.1:9090 ubuntu@84.252.135.15` → http://localhost:9090 |
-| Grafana admin | `admin` / пароль из `/opt/orbita/.env` (`GRAFANA_ADMIN_PASSWORD`) |
+| Приложение | **http://81.26.180.165/** |
+| SSH | `ssh -i ~/.ssh/x5-support ubuntu@81.26.180.165` (ключ в ssh-agent) |
+| Каталог | `/opt/x5-support` |
+| Grafana | `ssh -N -L 3000:127.0.0.1:3000 ubuntu@81.26.180.165` → http://localhost:3000 |
+| Prometheus | `ssh -N -L 9090:127.0.0.1:9090 ubuntu@81.26.180.165` → http://localhost:9090 |
+| Grafana admin | `admin` / пароль из `/opt/x5-support/.env` (`GRAFANA_ADMIN_PASSWORD`) |
 | Деплой с Mac | `./scripts/deploy.sh` (настройки в `.deploy.env`) |
 
 **Особенности этого сервера (РФ, Yandex Cloud):**
@@ -43,8 +43,8 @@ GitLab и CI/CD.
 сертификат подтверждается TXT-записью, входящие соединения не нужны.
 
 ```bash
-ssh -i ~/.ssh/orbita ubuntu@84.252.135.15
-cd /opt/orbita
+ssh -i ~/.ssh/x5-support ubuntu@81.26.180.165
+cd /opt/x5-support
 sudo ./deploy/enable-https.sh x5-test-task.ru admin@x5-test-task.ru
 ```
 
@@ -98,13 +98,13 @@ curl -I https://x5-test-task.ru/
 | Сервис | URL | Логин / пароль (из `.env`) |
 | --- | --- | --- |
 | Приложение | http://localhost:8090 | — |
-| Grafana | http://localhost:3000 | `admin` / `orbita_admin` |
+| Grafana | http://localhost:3000 | `admin` / `x5_admin` |
 | Prometheus | http://localhost:9090 | — |
 | Alertmanager | http://localhost:9093 | — |
 | Loki (API) | http://localhost:3100 | — |
 | Alloy UI | http://localhost:12345 | — |
 | Jaeger (профиль tracing) | http://localhost:16686 | — |
-| Postgres | `localhost:55432` | `orbita` / `orbita_local_password` |
+| Postgres | `localhost:55432` | `x5-support` / `x5_local_password` |
 | Redis | `localhost:6379` | без пароля (только localhost) |
 | GitLab | http://localhost:8929 | `root` / `change-me-before-use` |
 | GitLab SSH | `ssh://git@localhost:2222` | — |
@@ -132,9 +132,9 @@ make smoke      # подробная проверка + цели Prometheus
 
 Дальше:
 
-- Grafana → **Dashboards → Orbita** — три готовых дашборда: Overview, Infrastructure, Logs;
+- Grafana → **Dashboards → X5 Support** — три готовых дашборда: Overview, Infrastructure, Logs;
 - Prometheus → **Status → Targets** — все цели должны быть `UP`;
-- логи приложения — в Grafana → Orbita · Logs.
+- логи приложения — в Grafana → X5 Support · Logs.
 
 ## 4. Наблюдаемость: что собирается
 
@@ -180,7 +180,7 @@ make gitlab-down             # остановить
 | Web UI | http://localhost:8929 |
 | Логин / пароль | `root` / `change-me-before-use` (из `.env` → `GITLAB_ROOT_PASSWORD`) |
 | SSH-клонирование | `ssh://git@localhost:2222/<group>/<project>.git` |
-| Проект | http://localhost:8929/root/orbita-infra |
+| Проект | http://localhost:8929/root/x5-support-infra |
 | Runner | `local-docker`, Docker executor, зарегистрирован и online |
 | Пайплайн | `.gitlab-ci.yml`, последний прогон — **success** |
 
@@ -191,7 +191,7 @@ make gitlab-down             # остановить
 ```bash
 git init -b main
 git add -A && git commit -m "initial"
-git remote add origin http://oauth2:<TOKEN>@localhost:8929/root/orbita-infra.git
+git remote add origin http://oauth2:<TOKEN>@localhost:8929/root/x5-support-infra.git
 git push -u origin main
 ```
 
@@ -200,20 +200,20 @@ git push -u origin main
 
 ### Runner
 
-Уже зарегистрирован (instance runner). Конфиг — в volume `orbita-gitlab_runner-config`.
+Уже зарегистрирован (instance runner). Конфиг — в volume `x5-support-gitlab_runner-config`.
 Ключевые параметры:
 
 - URL и `--clone-url` → `http://gitlab:8929` (внутри docker-сети);
-- сеть job-контейнеров → `orbita-gitlab_default`;
+- сеть job-контейнеров → `x5-support-gitlab_default`;
 - смонтирован `/var/run/docker.sock` (для шага сборки образа).
 
 Перерегистрировать runner (новый токен из **Admin Area → CI/CD → Runners**):
 
 ```bash
-docker exec -it orbita-gitlab-runner gitlab-runner register \
+docker exec -it x5-support-gitlab-runner gitlab-runner register \
   --non-interactive --url "http://gitlab:8929" --clone-url "http://gitlab:8929" \
   --token "<RUNNER_TOKEN>" --executor docker --docker-image alpine:3.20 \
-  --docker-network-mode orbita-gitlab_default \
+  --docker-network-mode x5-support-gitlab_default \
   --docker-volumes /var/run/docker.sock:/var/run/docker.sock \
   --docker-pull-policy if-not-present --description local-docker
 ```
@@ -295,18 +295,18 @@ uiarc-dashboard/
 # пользователь деплоя
 sudo adduser --disabled-password --gecos "" deploy
 sudo usermod -aG docker deploy
-sudo mkdir -p /opt/orbita && sudo chown deploy:deploy /opt/orbita
+sudo mkdir -p /opt/x5-support && sudo chown deploy:deploy /opt/x5-support
 
 # ключ для деплоя (на Mac)
-ssh-keygen -t ed25519 -f ~/.ssh/orbita_deploy -C "orbita-deploy"
-ssh-copy-id -i ~/.ssh/orbita_deploy.pub deploy@SERVER_IP
+ssh-keygen -t ed25519 -f ~/.ssh/x5_deploy -C "x5-support-deploy"
+ssh-copy-id -i ~/.ssh/x5_deploy.pub deploy@SERVER_IP
 ```
 
 Секреты на сервере создаются **один раз** вручную — деплой их не перезаписывает:
 
 ```bash
 ssh deploy@SERVER_IP
-cd /opt/orbita && cp .env.example .env && nano .env   # пароли + DOMAIN + ACME_EMAIL
+cd /opt/x5-support && cp .env.example .env && nano .env   # пароли + DOMAIN + ACME_EMAIL
 ```
 
 ### Деплой из GitLab
@@ -318,8 +318,8 @@ cd /opt/orbita && cp .env.example .env && nano .env   # пароли + DOMAIN + 
 | `DEPLOY_HOST` | IP или домен сервера |
 | `DEPLOY_USER` | `deploy` |
 | `DEPLOY_PORT` | `22` |
-| `DEPLOY_PATH` | `/opt/orbita` |
-| `DEPLOY_SSH_KEY` | содержимое `~/.ssh/orbita_deploy` (приватный ключ) |
+| `DEPLOY_PATH` | `/opt/x5-support` |
+| `DEPLOY_SSH_KEY` | содержимое `~/.ssh/x5_deploy` (приватный ключ) |
 
 Затем в пайплайне нажимаете **deploy** (он manual). Джоба делает `rsync` кода на сервер
 (без `.env`, `.git`, `node_modules`) и запускает `docker compose ... -f docker-compose.prod.yml up -d --build`.
@@ -343,7 +343,7 @@ sudo usermod -aG docker $USER
 sudo ufw allow 22,80,443/tcp && sudo ufw enable
 
 # 2. Код
-git clone <repo> /opt/orbita && cd /opt/orbita
+git clone <repo> /opt/x5-support && cd /opt/x5-support
 
 # 3. Конфиг
 cp .env.example .env && nano .env      # пароли, DOMAIN, ACME_EMAIL
@@ -366,7 +366,7 @@ Caddy сам получит сертификат Let's Encrypt (нужны от�
 ```bash
 # вариант 1 — rsync без мусора
 rsync -av --exclude node_modules --exclude .git --exclude .env \
-  ./ user@SERVER_IP:/opt/orbita/
+  ./ user@SERVER_IP:/opt/x5-support/
 
 # вариант 2 — запушить в GitLab, который доступен серверу (или в GitHub), и git clone на сервере
 ```

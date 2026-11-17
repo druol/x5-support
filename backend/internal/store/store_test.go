@@ -20,3 +20,20 @@ func TestTransitionMatrix(t *testing.T) {
 		t.Error("required result/reason")
 	}
 }
+
+func TestValidation(t *testing.T) {
+	validTopics := map[string]bool{"access": true, "service": true, "other": true}
+	for topic := range validTopics {
+		if !ValidTopic(topic) {
+			t.Errorf("topic %q should be valid", topic)
+		}
+	}
+	for _, topic := range []string{"", "billing", "ACCESS"} {
+		if ValidTopic(topic) {
+			t.Errorf("topic %q should be invalid", topic)
+		}
+	}
+	if !ValidText(" ok ", 10) || ValidText("   ", 10) || ValidText("abcdefghijk", 10) {
+		t.Error("ValidText must trim, reject blank and enforce the rune limit")
+	}
+}

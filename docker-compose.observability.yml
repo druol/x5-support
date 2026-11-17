@@ -15,7 +15,7 @@ services:
   prometheus:
     user: "0:0"
     image: prom/prometheus:v2.55.1
-    container_name: orbita-prometheus
+    container_name: x5-support-prometheus
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -37,7 +37,7 @@ services:
   alertmanager:
     user: "0:0"
     image: prom/alertmanager:v0.27.0
-    container_name: orbita-alertmanager
+    container_name: x5-support-alertmanager
     restart: unless-stopped
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
@@ -55,17 +55,17 @@ services:
   grafana:
     user: "0:0"
     image: grafana/grafana:11.3.0
-    container_name: orbita-grafana
+    container_name: x5-support-grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-orbita_admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-x5_admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_SERVER_ROOT_URL: http://localhost:${GRAFANA_PORT:-3000}
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/orbita-overview.json
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/x5-support-overview.json
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -82,7 +82,7 @@ services:
   loki:
     user: "0:0"
     image: grafana/loki:3.2.1
-    container_name: orbita-loki
+    container_name: x5-support-loki
     restart: unless-stopped
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
@@ -96,7 +96,7 @@ services:
 
   alloy:
     image: grafana/alloy:v1.5.1
-    container_name: orbita-alloy
+    container_name: x5-support-alloy
     restart: unless-stopped
     command:
       - run
@@ -118,7 +118,7 @@ services:
   cadvisor:
     profiles: ["cadvisor"]
     image: gcr.io/cadvisor/cadvisor:v0.49.1
-    container_name: orbita-cadvisor
+    container_name: x5-support-cadvisor
     restart: unless-stopped
     privileged: true
     volumes:
@@ -133,7 +133,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:v1.8.2
-    container_name: orbita-node-exporter
+    container_name: x5-support-node-exporter
     restart: unless-stopped
     command:
       - --path.rootfs=/host
@@ -147,7 +147,7 @@ services:
 
   blackbox-exporter:
     image: prom/blackbox-exporter:v0.25.0
-    container_name: orbita-blackbox
+    container_name: x5-support-blackbox
     restart: unless-stopped
     command:
       - --config.file=/etc/blackbox/blackbox.yml
@@ -160,7 +160,7 @@ services:
   # Профиль tracing: включается по желанию (--profile tracing).
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
-    container_name: orbita-jaeger
+    container_name: x5-support-jaeger
     restart: unless-stopped
     profiles: ["tracing"]
     environment:
@@ -182,7 +182,7 @@ services:
   # Перезапускает unhealthy-контейнеры автоматически.
   autoheal:
     image: willfarrell/autoheal:latest
-    container_name: orbita-autoheal
+    container_name: x5-support-autoheal
     restart: unless-stopped
     environment:
       AUTOHEAL_CONTAINER_LABEL: all

@@ -1,9 +1,9 @@
 {
-  "uid": "orbita-logs",
-  "title": "Orbita · Logs",
+  "uid": "x5-support-logs",
+  "title": "X5 Support · Logs",
   "description": "Логи всех контейнеров из Loki. Собираются Grafana Alloy через Docker socket.",
   "tags": [
-    "orbita",
+    "x5-support",
     "local"
   ],
   "timezone": "browser",
@@ -42,7 +42,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum(count_over_time({container=\"orbita-app\"}[1h]))",
+          "expr": "sum(count_over_time({container=\"x5-support-app\"}[1h]))",
           "queryType": "range"
         }
       ],
@@ -150,7 +150,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container=\"orbita-app\"}",
+          "expr": "{container=\"x5-support-app\"}",
           "queryType": "range"
         }
       ],
@@ -186,7 +186,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container=\"orbita-app\"} |~ \"(?i)error|failed|exception\"",
+          "expr": "{container=\"x5-support-app\"} |~ \"(?i)error|failed|exception\"",
           "queryType": "range"
         }
       ],

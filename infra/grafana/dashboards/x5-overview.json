@@ -1,9 +1,9 @@
 {
-  "uid": "orbita-overview",
-  "title": "Orbita · Overview",
+  "uid": "x5-support-overview",
+  "title": "X5 Support · Overview",
   "description": "Главный экран: доступность, трафик, латентность, ресурсы контейнеров и состояние БД. Разбивка по сервисам для контейнеров появляется на Linux-хосте (на macOS Docker Desktop cAdvisor не отдаёт имена контейнеров).",
   "tags": [
-    "orbita",
+    "x5-support",
     "local"
   ],
   "timezone": "browser",
@@ -508,7 +508,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "pg_stat_database_numbackends{datname=\"orbita\"}",
+          "expr": "pg_stat_database_numbackends{datname=\"x5-support\"}",
           "legendFormat": "connections"
         }
       ],

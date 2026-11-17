@@ -11,8 +11,8 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-DB_USER="${POSTGRES_USER:-orbita}"
-DB_NAME="${POSTGRES_DB:-orbita}"
+DB_USER="${POSTGRES_USER:-x5-support}"
+DB_NAME="${POSTGRES_DB:-x5-support}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT="backups/${DB_NAME}-${STAMP}.sql.gz"
 

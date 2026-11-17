@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bootstrap сервера: ставит Docker и разворачивает Orbita из архива.
+# Bootstrap сервера: ставит Docker и разворачивает X5 Support из архива.
 # Запускается cloud-init'ом на новой ВМ (см. deploy/cloud-init.yaml).
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -12,16 +12,16 @@ fi
 systemctl enable --now docker
 
 # ── 2. Проект ────────────────────────────────────────────────────────────────
-mkdir -p /opt/orbita
-curl -fsSL https://x0.at/8Q1n.gz -o /tmp/orbita.tar.gz \
-  || curl -fsSL https://temp.sh/DxvHk/orbita-deploy.tar.gz -o /tmp/orbita.tar.gz
-tar -xzf /tmp/orbita.tar.gz -C /opt/orbita
+mkdir -p /opt/x5-support
+curl -fsSL https://x0.at/8Q1n.gz -o /tmp/x5-support.tar.gz \
+  || curl -fsSL https://temp.sh/DxvHk/x5-support-deploy.tar.gz -o /tmp/x5-support.tar.gz
+tar -xzf /tmp/x5-support.tar.gz -C /opt/x5-support
 
 # ── 3. Конфиг: домен = <публичный IP>.sslip.io, пароли случайные ─────────────
 IP=$(curl -fsS -H 'Metadata-Flavor: Google' \
   'http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip')
 
-cd /opt/orbita
+cd /opt/x5-support
 cp .env.example .env
 sed -i "s|^DOMAIN=.*|DOMAIN=${IP}.sslip.io|" .env
 sed -i "s|^ACME_EMAIL=.*|ACME_EMAIL=admin@${IP}.sslip.io|" .env
@@ -36,7 +36,7 @@ docker compose -f docker-compose.yml \
   -f docker-compose.prod.yml up -d --build
 
 echo "======================================================"
-echo " ORBITA DEPLOYED"
+echo " X5 SUPPORT DEPLOYED"
 echo " App:      https://${IP}.sslip.io"
 echo " Grafana:  admin / ${GF_PASS}"
 echo " (Grafana слушает только 127.0.0.1 — доступ через SSH-туннель)"

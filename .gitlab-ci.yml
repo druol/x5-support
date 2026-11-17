@@ -1,58 +1,59 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# CI/CD: GitLab и runner живут локально, сервер — только цель деплоя.
-#   check   — типы + сборка статики
-#   build   — сборка Docker-образа через локальный docker.sock
-#   deploy  — ручной: rsync кода на сервер + docker compose up -d --build
+# X5 Support — CI/CD
+#   validate  — линтеры, типы, gofmt/vet, проверка compose
+#   test      — unit-тесты frontend/backend + integration backend с Postgres
+#   build     — production-сборка статики и Docker-образов
+#   deploy    — ручной деплой на сервер по SSH (production)
 # ─────────────────────────────────────────────────────────────────────────────
 
 stages:
-  - lint
+  - validate
   - test
-  - check
   - build
   - deploy
 
 variables:
   PNPM_VERSION: "9.15.9"
-  APP_IMAGE: "orbita-dashboard:$CI_COMMIT_SHORT_SHA"
+  PNPM_STORE_DIR: "$CI_PROJECT_DIR/.pnpm-store"
+  GO_IMAGE: "golang:1.25-alpine"
+  APP_IMAGE: "x5-support-app:$CI_COMMIT_SHORT_SHA"
+  API_IMAGE: "x5-support-api:$CI_COMMIT_SHORT_SHA"
 
 default:
   interruptible: true
 
-# 1. Линтер + проверка типов.
-lint:
-  stage: lint
+# ── frontend ────────────────────────────────────────────────────────────────
+
+.frontend:
   image: node:22-alpine
+  cache:
+    key:
+      files:
+        - frontend/pnpm-lock.yaml
+    paths:
+      - .pnpm-store
   before_script:
     - corepack enable
     - corepack prepare pnpm@$PNPM_VERSION --activate
     - cd frontend
-    - pnpm install --frozen-lockfile
+    - pnpm install --frozen-lockfile --store-dir "$PNPM_STORE_DIR"
+
+frontend-lint:
+  extends: .frontend
+  stage: validate
   script:
     - pnpm lint
     - pnpm typecheck
 
-# 2. Юнит-тесты (Vitest).
-test:
+frontend-test:
+  extends: .frontend
   stage: test
-  image: node:22-alpine
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@$PNPM_VERSION --activate
-    - cd frontend
-    - pnpm install --frozen-lockfile
   script:
     - pnpm test
 
-# 3. Сборка статики.
-check:
-  stage: check
-  image: node:22-alpine
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@$PNPM_VERSION --activate
-    - cd frontend
-    - pnpm install --frozen-lockfile
+frontend-build:
+  extends: .frontend
+  stage: build
   script:
     - pnpm build
   artifacts:
@@ -60,41 +61,120 @@ check:
       - frontend/dist
     expire_in: 1 week
 
-# 3. Сборка Docker-образа приложения (локально).
-build-image:
+# ── backend ─────────────────────────────────────────────────────────────────
+
+.backend:
+  image: $GO_IMAGE
+  cache:
+    key:
+      files:
+        - backend/go.sum
+    paths:
+      - .go-cache
+  before_script:
+    - cd backend
+    - export GOCACHE="$CI_PROJECT_DIR/.go-cache"
+    - go mod download
+
+backend-lint:
+  extends: .backend
+  stage: validate
+  script:
+    - test -z "$(gofmt -l .)" || (echo "gofmt required:"; gofmt -l .; exit 1)
+    - go vet ./...
+
+backend-test:
+  extends: .backend
+  stage: test
+  script:
+    - go test -count=1 ./...
+
+backend-integration:
+  extends: .backend
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: support_test
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test-only
+    TEST_DATABASE_URL: "postgres://test:test-only@postgres:5432/support_test?sslmode=disable"
+  before_script:
+    - apk add --no-cache postgresql-client
+    - until pg_isready -h postgres -U test -d support_test >/dev/null 2>&1; do echo "waiting for postgres"; sleep 1; done
+    - cd backend
+    - export GOCACHE="$CI_PROJECT_DIR/.go-cache"
+    - go mod download
+  script:
+    - go test -count=1 -v ./...
+
+# ── инфраструктура ──────────────────────────────────────────────────────────
+
+compose-validate:
+  stage: validate
+  image: docker:27-cli
+  script:
+    - docker compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml config -q
+  variables:
+    DOMAIN: ci.example.com
+    ACME_EMAIL: ci@example.com
+
+# ── сборка образов ──────────────────────────────────────────────────────────
+
+build-api:
   stage: build
   image: docker:27-cli
-  needs: [check]
+  needs: [backend-lint, backend-test, backend-integration]
+  variables:
+    DOCKER_DEFAULT_PLATFORM: linux/amd64
   script:
-    - docker version --format 'server {{.Server.Version}}'
-    - docker build -t "$APP_IMAGE" ./frontend
-    - docker image inspect "$APP_IMAGE" --format 'image {{.Id}}'
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - docker build -t x5-support-api:local ./backend
+    - docker image inspect x5-support-api:local --format 'image {{.Id}}'
+    - docker save x5-support-api:local | gzip > api-image.tar.gz
+  artifacts:
+    paths:
+      - api-image.tar.gz
+    expire_in: 1 day
 
-# 4. Деплой на сервер: код → rsync → compose на сервере.
-#    Нужны переменные (Settings → CI/CD → Variables):
-#      DEPLOY_HOST      — IP или домен сервера
-#      DEPLOY_USER      — пользователь деплоя (например, deploy)
-#      DEPLOY_SSH_KEY   — приватный ключ (тип File или Variable, masked)
-#      DEPLOY_PATH      — каталог на сервере (по умолчанию /opt/orbita)
-#      DEPLOY_PORT      — SSH-порт (по умолчанию 22)
-#    На сервере один раз создаётся .env с секретами — он НЕ перезаписывается.
+build-app:
+  stage: build
+  image: docker:27-cli
+  needs: [frontend-lint, frontend-test, frontend-build]
+  variables:
+    DOCKER_DEFAULT_PLATFORM: linux/amd64
+  script:
+    - docker build -t x5-support-app:local ./frontend
+    - docker image inspect x5-support-app:local --format 'image {{.Id}}'
+    - docker save x5-support-app:local | gzip > app-image.tar.gz
+  artifacts:
+    paths:
+      - app-image.tar.gz
+    expire_in: 1 day
+
+# ── деплой ──────────────────────────────────────────────────────────────────
+# CI/CD → Variables:
+#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (File/masked), DEPLOY_PATH, DEPLOY_PORT
+# Серверный .env не перезаписывается rsync-ом.
 deploy:
   stage: deploy
   image: alpine:3.20
-  needs: [build-image]
+  needs: [build-app, build-api, compose-validate]
   when: manual
   environment:
-    name: production
+    name: production/x5-support
+    url: https://x5-test-task.ru
   before_script:
-    - apk add --no-cache openssh-client rsync
+    - apk add --no-cache openssh-client rsync curl
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
     - chmod 600 ~/.ssh/id_deploy
     - ssh-keyscan -p "${DEPLOY_PORT:-22}" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
   script:
-    - echo "Деплой на ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH:-/opt/orbita}"
+    - echo "Deploy ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH:-/opt/x5-support}"
+    - scp -P "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy api-image.tar.gz app-image.tar.gz "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/"
+    - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"
+        "docker load -i /tmp/api-image.tar.gz && docker load -i /tmp/app-image.tar.gz"
     - rsync -az --delete
         --exclude '.git'
         --exclude '.env'
@@ -103,8 +183,15 @@ deploy:
         --exclude 'dev-scratch'
         --exclude 'frontend/dist'
         --exclude 'certs'
+        --exclude '.pnpm-store'
+        --exclude '.go-cache'
+        --exclude 'api-image.tar.gz'
+        --exclude 'app-image.tar.gz'
         -e "ssh -p ${DEPLOY_PORT:-22} -i ~/.ssh/id_deploy"
-        ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH:-/opt/orbita}/"
-    - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy
-        "${DEPLOY_USER}@${DEPLOY_HOST}"
-        "cd ${DEPLOY_PATH:-/opt/orbita} && docker compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml up -d --build && docker compose ps"
+        ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH:-/opt/x5-support}/"
+    - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"
+        "cd ${DEPLOY_PATH:-/opt/x5-support} && docker compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml up -d --remove-orphans && docker compose ps"
+    - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"
+        "for i in 1 2 3 4 5 6 7 8 9 10; do docker exec x5-support-app wget -qO- http://127.0.0.1:8080/healthz && exit 0; sleep 3; done; exit 1"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

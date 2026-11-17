@@ -1,9 +1,9 @@
 {
-  "uid": "orbita-infra",
-  "title": "Orbita · Infrastructure",
+  "uid": "x5-support-infra",
+  "title": "X5 Support · Infrastructure",
   "description": "Железо и контейнеры: CPU, память, диск, сеть. На macOS node-exporter показывает Linux-VM Docker Desktop.",
   "tags": [
-    "orbita",
+    "x5-support",
     "local"
   ],
   "timezone": "browser",
