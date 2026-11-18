@@ -3,7 +3,7 @@ COMPOSE_BASE := docker compose -f docker-compose.yml
 COMPOSE_OBS := $(COMPOSE_BASE) -f docker-compose.observability.yml
 COMPOSE_PROD := $(COMPOSE_OBS) -f docker-compose.prod.yml
 
-.PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset
+.PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset docker-metrics-image
 
 help:
 	@echo "X5 Support infra:"
@@ -18,13 +18,16 @@ help:
 	@echo "  make logs      логи всего стека"
 	@echo "  make reset     остановить и удалить volumes (ВНИМАНИЕ: данные)"
 
-up:
+up: docker-metrics-image
 	$(COMPOSE_OBS) up -d --build
+
+docker-metrics-image:
+	docker build -f deploy/offline/Dockerfile.docker-metrics -t x5-support-docker-metrics:local .
 
 core:
 	$(COMPOSE_BASE) up -d --build
 
-obs:
+obs: docker-metrics-image
 	$(COMPOSE_OBS) up -d --build prometheus alertmanager grafana loki alloy docker-metrics node-exporter blackbox-exporter
 
 prod:
