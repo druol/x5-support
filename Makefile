@@ -3,7 +3,7 @@ COMPOSE_BASE := docker compose -f docker-compose.yml
 COMPOSE_OBS := $(COMPOSE_BASE) -f docker-compose.observability.yml
 COMPOSE_PROD := $(COMPOSE_OBS) -f docker-compose.prod.yml
 
-.PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset docker-metrics-image db-ui db-ui-down
+.PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset docker-metrics-image db-ui db-ui-down obs-refresh
 
 help:
 	@echo "X5 Support infra:"
@@ -29,6 +29,11 @@ core:
 
 obs: docker-metrics-image
 	$(COMPOSE_OBS) up -d --build prometheus alertmanager grafana loki alloy docker-metrics node-exporter blackbox-exporter
+
+# После git-операций Docker Desktop на macOS иногда оставляет старые bind-mount
+# на конфиги/дашборды. Пересоздание контейнеров обновляет их.
+obs-refresh:
+	$(COMPOSE_OBS) up -d --force-recreate prometheus alertmanager grafana alloy docker-metrics
 
 prod:
 	$(COMPOSE_PROD) up -d --build
