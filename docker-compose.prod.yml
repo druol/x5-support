@@ -14,6 +14,31 @@ services:
     ports: !override
       - "127.0.0.1:${APP_PORT:-8080}:8080"
 
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: x5-support-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-change-me}
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - ./infra/pgadmin/servers.prod.json:/pgadmin4/servers.json:ro
+      - pgadmindata:/var/lib/pgadmin
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - monitoring
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   caddy:
     image: caddy:2.9-alpine
     container_name: x5-support-edge

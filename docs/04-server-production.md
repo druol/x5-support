@@ -65,6 +65,21 @@ Sudo без пароля у `ubuntu` настроен образом Yandex Clou
 | `x5-support-tunnel-grafana` | cloudflare/cloudflared | туннель к Grafana (3000) |
 
 У всех `restart: unless-stopped`, автостарт после перезагрузки ВМ.
+У всех `restart: unless-stopped`, автостарт после перезагрузки ВМ.
+
+### pgAdmin на production
+
+pgAdmin слушает только `127.0.0.1:5050` на сервере и наружу не публикуется.
+Доступ — через SSH-туннель:
+
+```bash
+ssh -N -L 5050:127.0.0.1:5050 -i ~/.ssh/x5-support ubuntu@81.26.180.165
+```
+
+Затем откройте `http://localhost:5050`. Логин/пароль — `PGADMIN_EMAIL` и
+`PGADMIN_PASSWORD` из `/opt/x5-support/.env`; сервер `X5 Support (production)`
+уже добавлен в pgAdmin. Пароль Postgres для подключения — `POSTGRES_PASSWORD`
+из того же `.env`.
 
 > cAdvisor не используется: его amd64-образ недоступен на сервере. CPU/память контейнеров
 > собирает лёгкий `docker-metrics` exporter через Docker API.

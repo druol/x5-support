@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "X5 Support (production)",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "x5_support",
+      "Username": "x5",
+      "SSLMode": "prefer"
+    }
+  }
+}
