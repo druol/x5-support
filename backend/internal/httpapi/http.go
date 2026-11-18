@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,26 +11,32 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"uiarc/support/internal/store"
+	"uiarc/support/internal/telemetry"
 )
 
 type API struct {
 	Store         *store.Store
 	Notifications bool
 	LastPoll      *atomic.Int64
-	requests      atomic.Uint64
-	errors        atomic.Uint64
-	durationNS    atomic.Uint64
+	Telemetry     *telemetry.Telemetry
+	Service       string
+	Env           string
 }
 
 func (a *API) Handler() http.Handler {
+	if a.Telemetry == nil {
+		a.Telemetry = telemetry.New("api", "test", "test", "test", nil)
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", a.health)
-	mux.HandleFunc("GET /metrics", a.metrics)
+	mux.Handle("GET /metrics", a.Telemetry.Handler())
 	if a.Notifications {
 		mux.HandleFunc("GET /api/notifications", func(w http.ResponseWriter, r *http.Request) {
 			inbox, err := a.Store.Inbox(r.Context())
@@ -60,34 +68,125 @@ func (a *API) Handler() http.Handler {
 			})
 		}
 	}
+	return a.observe(mux)
+}
+
+// observe adds request IDs, access logging, latency/size metrics and a 10s deadline.
+func (a *API) observe(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		recorder := &responseWriter{ResponseWriter: w, status: 200}
+		requestID := incomingRequestID(r)
+		recorder := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+		w.Header().Set("X-Request-ID", requestID)
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		defer cancel()
-		mux.ServeHTTP(recorder, r.WithContext(ctx))
-		if r.URL.Path != "/metrics" && r.URL.Path != "/healthz" {
-			a.requests.Add(1)
-			a.durationNS.Add(uint64(time.Since(start)))
-			if recorder.status >= 500 {
-				a.errors.Add(1)
-			}
-			slog.Info("http", "method", r.Method, "path", r.URL.Path, "status", recorder.status, "duration_ms", time.Since(start).Milliseconds())
+
+		trackInFlight := r.URL.Path != "/metrics"
+		if trackInFlight {
+			a.Telemetry.SetInFlight(1)
+			defer a.Telemetry.SetInFlight(-1)
 		}
+
+		ctx, cancel := context.WithTimeout(context.WithValue(r.Context(), requestIDKey{}, requestID), 10*time.Second)
+		defer cancel()
+		next.ServeHTTP(recorder, r.WithContext(ctx))
+
+		route := normalizeRoute(r.URL.Path)
+		duration := time.Since(start)
+		a.Telemetry.ObserveHTTP(r.Method, route, recorder.status, duration, recorder.bytes)
+
+		// Health/metrics scrapes would otherwise flood the access log.
+		if r.URL.Path == "/metrics" || r.URL.Path == "/healthz" || r.URL.Path == "/api/healthz" {
+			return
+		}
+		attrs := []any{
+			"request_id", requestID,
+			"method", r.Method,
+			"route", route,
+			"path", r.URL.Path,
+			"status", recorder.status,
+			"duration_ms", float64(duration.Microseconds()) / 1000,
+			"bytes", recorder.bytes,
+			"client_ip", clientIP(r),
+			"user_agent", r.UserAgent(),
+		}
+		if recorder.status >= http.StatusInternalServerError || duration > time.Second {
+			slog.Warn("http_request", attrs...)
+			return
+		}
+		slog.Info("http_request", attrs...)
 	})
+}
+
+type requestIDKey struct{}
+
+func incomingRequestID(r *http.Request) string {
+	if value := strings.TrimSpace(r.Header.Get("X-Request-ID")); value != "" && len(value) <= 128 {
+		return value
+	}
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err == nil {
+		return hex.EncodeToString(buf)
+	}
+	return fmt.Sprintf("fallback-%d", time.Now().UnixNano())
+}
+
+func clientIP(r *http.Request) string {
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		return strings.TrimSpace(strings.Split(forwarded, ",")[0])
+	}
+	return r.RemoteAddr
+}
+
+var (
+	userTicketRoute = regexp.MustCompile(`^/api/(user|admin)/tickets/\d+$`)
+	userStatusRoute = regexp.MustCompile(`^/api/(user|admin)/tickets/\d+/(comments|status)$`)
+	notifReadRoute  = regexp.MustCompile(`^/api/notifications/\d+/read$`)
+)
+
+// normalizeRoute keeps metric cardinality bounded and turns request paths into
+// stable route labels (ids are replaced by {id}).
+func normalizeRoute(path string) string {
+	switch {
+	case path == "/healthz" || path == "/api/healthz":
+		return "/healthz"
+	case path == "/metrics":
+		return "/metrics"
+	case path == "/api/notifications":
+		return "/api/notifications"
+	case path == "/api/user/tickets" || path == "/api/admin/tickets":
+		return path
+	case path == "/api/debug/notifications" || path == "/api/debug/tickets":
+		return path
+	case userTicketRoute.MatchString(path):
+		parts := strings.Split(path, "/")
+		return "/api/" + parts[2] + "/tickets/{id}"
+	case userStatusRoute.MatchString(path):
+		parts := strings.Split(path, "/")
+		return "/api/" + parts[2] + "/tickets/{id}/" + parts[5]
+	case notifReadRoute.MatchString(path):
+		return "/api/notifications/{id}/read"
+	default:
+		return "other"
+	}
 }
 
 type responseWriter struct {
 	http.ResponseWriter
 	status int
+	bytes  int
 }
 
 func (w *responseWriter) WriteHeader(status int) {
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *responseWriter) Write(body []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(body)
+	w.bytes += n
+	return n, err
 }
 
 func parseID(r *http.Request) (int64, error) {
@@ -120,7 +219,7 @@ func respond(w http.ResponseWriter, value any, err error) {
 		case errors.Is(err, store.ErrNotFound):
 			status, message = 404, "Запись не найдена."
 		default:
-			slog.Error("request failed", "error_type", fmt.Sprintf("%T", err))
+			slog.Error("request_failed", "error", err, "error_type", fmt.Sprintf("%T", err))
 		}
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
@@ -189,15 +288,4 @@ func (a *API) health(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond(w, map[string]string{"status": "ok"}, nil)
-}
-func (a *API) metrics(w http.ResponseWriter, r *http.Request) {
-	var pending int64
-	var oldest float64
-	err := a.Store.DB.QueryRow(r.Context(), `SELECT count(*), COALESCE(EXTRACT(EPOCH FROM now()-min(occurred_at)),0)::float8 FROM ticketing.outbox WHERE delivered_at IS NULL`).Scan(&pending, &oldest)
-	if err != nil {
-		respond(w, nil, err)
-		return
-	}
-	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-	fmt.Fprintf(w, "# TYPE support_http_requests_total counter\nsupport_http_requests_total %d\n# TYPE support_http_errors_total counter\nsupport_http_errors_total %d\n# TYPE support_http_duration_seconds summary\nsupport_http_duration_seconds_sum %f\nsupport_http_duration_seconds_count %d\n# TYPE support_outbox_pending gauge\nsupport_outbox_pending %d\n# TYPE support_outbox_oldest_seconds gauge\nsupport_outbox_oldest_seconds %f\n", a.requests.Load(), a.errors.Load(), float64(a.durationNS.Load())/1e9, a.requests.Load(), pending, oldest)
 }

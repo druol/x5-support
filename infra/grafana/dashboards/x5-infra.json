@@ -102,7 +102,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(container_last_seen{id=~\"/docker/.*\"})",
+          "expr": "x5_docker_containers_running",
           "legendFormat": "containers"
         }
       ],

@@ -32,6 +32,13 @@ https://{$DOMAIN}, https://*.{$DOMAIN} {
 
 	log {
 		output stdout
-		format json
+		format filter {
+			wrap json
+			fields {
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>Proxy-Authorization delete
+			}
+		}
 	}
 }

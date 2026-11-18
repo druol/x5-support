@@ -3,6 +3,12 @@
 	admin :2019
 	metrics
 	persist_config off
+
+	# За edge-Caddy приходит X-Forwarded-For; доверяем только приватным прокси,
+	# чтобы в логах backend оставался реальный IP клиента, а не адрес edge.
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :8080 {

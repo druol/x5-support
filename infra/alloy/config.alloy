@@ -28,7 +28,7 @@ loki.source.docker "containers" {
 	host          = "unix:///var/run/docker.sock"
 	targets       = discovery.docker.containers.targets
 	relabel_rules = discovery.relabel.containers.rules
-	labels        = {job = "docker"}
+	labels        = {job = "docker", env = "production", stack = "x5-support"}
 	forward_to    = [loki.process.filter.receiver]
 }
 
@@ -37,6 +37,22 @@ loki.source.docker "containers" {
 loki.process "filter" {
 	stage.drop {
 		older_than = "336h"
+	}
+
+	// JSON logs from backend/notifications/Caddy get level and request_id extracted
+	// into labels so Grafana/Loki can filter by severity and trace a request.
+	stage.json {
+		expressions = {
+			level      = "level",
+			service    = "service",
+			request_id = "request_id",
+		}
+	}
+
+	stage.labels {
+		values = {
+			level = "",
+		}
 	}
 
 	forward_to = [loki.write.local.receiver]

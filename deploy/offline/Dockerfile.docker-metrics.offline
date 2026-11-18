@@ -1,0 +1,5 @@
+# Offline-сборка: бинарник собран на машине разработчика, база caddy уже в кэше.
+FROM caddy:2.9-alpine
+COPY x5-docker-metrics /usr/local/bin/x5-docker-metrics
+EXPOSE 9101
+ENTRYPOINT ["/usr/local/bin/x5-docker-metrics"]

@@ -40,7 +40,7 @@ groups:
   - name: x5-support-performance
     rules:
       - alert: SupportOutboxBacklog
-        expr: support_outbox_oldest_seconds{job="backend"} > 300
+        expr: x5_outbox_oldest_pending_seconds{job="backend"} > 300
         for: 5m
         labels:
           severity: warning
@@ -50,9 +50,9 @@ groups:
 
       - alert: HighErrorRate
         expr: |
-          sum(rate(caddy_http_response_duration_seconds_count{handler="file_server",code=~"5.."}[5m]))
+          sum(rate(caddy_http_response_duration_seconds_count{handler="subroute",code=~"5.."}[5m]))
             /
-          sum(rate(caddy_http_response_duration_seconds_count{handler="file_server"}[5m])) > 0.05
+          sum(rate(caddy_http_response_duration_seconds_count{handler="subroute"}[5m])) > 0.05
         for: 5m
         labels:
           severity: warning
@@ -62,7 +62,7 @@ groups:
 
       - alert: AppLatencyHigh
         expr: |
-          histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler="file_server"}[5m]))) > 0.5
+          histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler="subroute"}[5m]))) > 0.5
         for: 10m
         labels:
           severity: warning
@@ -72,18 +72,14 @@ groups:
 
       - alert: ContainerMemoryHigh
         expr: |
-          sum by (container_label_com_docker_compose_service) (
-            container_memory_working_set_bytes{container_label_com_docker_compose_service!=""}
-          )
+          x5_docker_container_memory_bytes
             /
-          sum by (container_label_com_docker_compose_service) (
-            container_spec_memory_limit_bytes{container_label_com_docker_compose_service!=""} > 0
-          ) > 0.9
+          clamp_min(x5_docker_container_memory_limit_bytes, 1) > 0.9
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "Контейнер {{ $labels.container_label_com_docker_compose_service }} у лимита памяти"
+          summary: "Контейнер {{ $labels.container }} у лимита памяти"
           description: "Потребление памяти превысило 90% лимита."
 
   - name: x5-support-host
@@ -99,3 +95,67 @@ groups:
         annotations:
           summary: "На диске меньше 15% свободного места"
           description: "Освободите место, иначе контейнеры могут перестать писать данные."
+
+
+  - name: x5-support-service
+    rules:
+      - alert: X5High5xxRate
+        expr: |
+          sum(rate(x5_http_requests_total{status=~"5.."}[5m]))
+            /
+          clamp_min(sum(rate(x5_http_requests_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Доля 5xx выше 5%"
+          description: "Бэкенд или notifications отдают слишком много 5xx за последние 5 минут."
+
+      - alert: X5P95LatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(x5_http_request_duration_seconds_bucket[5m]))
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 HTTP-латентности выше 1 секунды"
+          description: "Проверьте БД и нагрузку на backend/notifications."
+
+      - alert: X5OutboxBacklog
+        expr: x5_outbox_pending_events{job="backend"} > 100 or x5_outbox_oldest_pending_seconds{job="backend"} > 120
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Очередь уведомлений растёт"
+          description: "В outbox больше 100 событий или старейшее ждёт больше 2 минут."
+
+      - alert: X5NotificationDeliveryErrors
+        expr: rate(x5_notifications_delivery_errors_total{job="notifications"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ошибки доставки уведомлений"
+          description: "Воркер notifications не может доставить события; проверьте Postgres и логи."
+
+      - alert: X5NoDeliveryPolls
+        expr: time() - x5_notifications_last_successful_delivery_timestamp_seconds{job="notifications"} > 120
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Воркер уведомлений не опрашивает outbox"
+          description: "Последний успешный poll был больше 2 минут назад."
+
+      - alert: X5DBPoolSaturated
+        expr: |
+          x5_db_pool_acquired_conns / clamp_min(x5_db_pool_max_conns, 1) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Пул PostgreSQL почти исчерпан"
+          description: "Более 90% соединений пула заняты."

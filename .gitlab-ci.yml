@@ -129,12 +129,27 @@ build-api:
   variables:
     DOCKER_DEFAULT_PLATFORM: linux/amd64
   script:
-    - docker build -t x5-support-api:local ./backend
+    - docker build --build-arg VERSION=$CI_COMMIT_SHORT_SHA --build-arg COMMIT=$CI_COMMIT_SHA -t x5-support-api:local ./backend
     - docker image inspect x5-support-api:local --format 'image {{.Id}}'
     - docker save x5-support-api:local | gzip > api-image.tar.gz
   artifacts:
     paths:
       - api-image.tar.gz
+    expire_in: 1 day
+
+build-docker-metrics:
+  stage: build
+  image: docker:27-cli
+  needs: [backend-lint]
+  variables:
+    DOCKER_DEFAULT_PLATFORM: linux/amd64
+  script:
+    - docker build -f deploy/offline/Dockerfile.docker-metrics -t x5-support-docker-metrics:local .
+    - docker image inspect x5-support-docker-metrics:local --format 'image {{.Id}}'
+    - docker save x5-support-docker-metrics:local | gzip > docker-metrics-image.tar.gz
+  artifacts:
+    paths:
+      - docker-metrics-image.tar.gz
     expire_in: 1 day
 
 build-app:
@@ -159,7 +174,7 @@ build-app:
 deploy:
   stage: deploy
   image: alpine:3.20
-  needs: [build-app, build-api, compose-validate]
+  needs: [build-app, build-api, build-docker-metrics, compose-validate]
   when: manual
   environment:
     name: production/x5-support
@@ -172,9 +187,9 @@ deploy:
     - ssh-keyscan -p "${DEPLOY_PORT:-22}" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
   script:
     - echo "Deploy ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH:-/opt/x5-support}"
-    - scp -P "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy api-image.tar.gz app-image.tar.gz "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/"
+    - scp -P "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy api-image.tar.gz app-image.tar.gz docker-metrics-image.tar.gz "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/"
     - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"
-        "docker load -i /tmp/api-image.tar.gz && docker load -i /tmp/app-image.tar.gz"
+        "docker load -i /tmp/api-image.tar.gz && docker load -i /tmp/app-image.tar.gz && docker load -i /tmp/docker-metrics-image.tar.gz"
     - rsync -az --delete
         --exclude '.git'
         --exclude '.env'
@@ -189,6 +204,8 @@ deploy:
         --exclude 'app-image.tar.gz'
         -e "ssh -p ${DEPLOY_PORT:-22} -i ~/.ssh/id_deploy"
         ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH:-/opt/x5-support}/"
+    - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"
+        "cd ${DEPLOY_PATH:-/opt/x5-support} && cp deploy/offline/Dockerfile.app Dockerfile.app && cp deploy/offline/Dockerfile.api Dockerfile.api"
     - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"
         "cd ${DEPLOY_PATH:-/opt/x5-support} && docker compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.prod.yml up -d --remove-orphans && docker compose ps"
     - ssh -p "${DEPLOY_PORT:-22}" -i ~/.ssh/id_deploy "${DEPLOY_USER}@${DEPLOY_HOST}"

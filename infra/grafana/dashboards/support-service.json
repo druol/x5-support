@@ -38,7 +38,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "rate(support_http_requests_total{job=\"backend\"}[5m])",
+          "expr": "sum(rate(x5_http_requests_total{job=\"backend\"}[5m]))",
           "legendFormat": "{{service}}"
         }
       ],
@@ -76,7 +76,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "rate(support_http_errors_total{job=\"backend\"}[5m])",
+          "expr": "sum(rate(x5_http_requests_total{job=\"backend\",status=~\"5..\"}[5m]))",
           "legendFormat": "{{service}}"
         }
       ],
@@ -100,7 +100,7 @@
     {
       "id": 3,
       "type": "timeseries",
-      "title": "Average request duration",
+      "title": "p95 request duration",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -114,7 +114,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "rate(support_http_duration_seconds_sum{job=\"backend\"}[5m]) / clamp_min(rate(support_http_duration_seconds_count{job=\"backend\"}[5m]), 1e-9)",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(x5_http_request_duration_seconds_bucket{job=\"backend\"}[5m])))",
           "legendFormat": "{{service}}"
         }
       ],
@@ -152,7 +152,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "support_outbox_pending{job=\"backend\"}",
+          "expr": "x5_outbox_pending_events{job=\"backend\"}",
           "legendFormat": "{{service}}"
         }
       ],
@@ -190,7 +190,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "support_outbox_oldest_seconds{job=\"backend\"}",
+          "expr": "x5_outbox_oldest_pending_seconds{job=\"backend\"}",
           "legendFormat": "{{service}}"
         }
       ],
@@ -209,6 +209,187 @@
         "tooltip": {
           "mode": "single"
         }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Delivered notifications / sec",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (result) (rate(x5_notifications_delivered_total{job=\"notifications\"}[5m]))",
+          "legendFormat": "{{result}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Delivery poll age",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - max(x5_notifications_last_successful_delivery_timestamp_seconds{job=\"notifications\"})",
+          "legendFormat": "age"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 120
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Postgres pool utilization",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "x5_db_pool_acquired_conns / clamp_min(x5_db_pool_max_conns, 1)",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Delivery errors / sec",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(x5_notifications_delivery_errors_total{job=\"notifications\"}[5m]))",
+          "legendFormat": "errors"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value"
       }
     }
   ]

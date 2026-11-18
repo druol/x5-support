@@ -3,7 +3,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tickets ./cmd/tickets
+ARG VERSION=dev
+ARG COMMIT=unknown
+RUN CGO_ENABLED=0 go build -trimpath \
+  -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
+  -o /tickets ./cmd/tickets
 
 FROM build AS test
 CMD ["go", "test", "-count=1", "-v", "./..."]

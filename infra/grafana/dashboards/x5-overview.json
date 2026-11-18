@@ -106,7 +106,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(caddy_http_requests_total[5m]))",
+          "expr": "sum(rate(caddy_http_requests_total{handler=\"subroute\"}[5m]))",
           "legendFormat": "value"
         }
       ],
@@ -162,7 +162,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"file_server\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"subroute\"}[5m])))",
           "legendFormat": "value"
         }
       ],
@@ -286,7 +286,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (code) (rate(caddy_http_response_duration_seconds_count{handler=\"file_server\"}[5m]))",
+          "expr": "sum by (code) (rate(caddy_http_response_duration_seconds_count{handler=\"subroute\"}[5m]))",
           "legendFormat": "{{code}}"
         }
       ],
@@ -337,7 +337,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"file_server\"}[5m])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"subroute\"}[5m])))",
           "legendFormat": "p50"
         },
         {
@@ -346,7 +346,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"file_server\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"subroute\"}[5m])))",
           "legendFormat": "p95"
         },
         {
@@ -355,7 +355,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"file_server\"}[5m])))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{handler=\"subroute\"}[5m])))",
           "legendFormat": "p99"
         }
       ],
@@ -406,7 +406,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\"/docker/.*\"}[5m])) * 100",
+          "expr": "sum(rate(x5_docker_container_cpu_seconds_total[5m])) * 100",
           "legendFormat": "все контейнеры"
         }
       ],
@@ -457,7 +457,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(container_memory_working_set_bytes{id=~\"/docker/.*\"})",
+          "expr": "sum(x5_docker_container_memory_bytes)",
           "legendFormat": "все контейнеры"
         }
       ],
@@ -508,7 +508,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "pg_stat_database_numbackends{datname=\"x5-support\"}",
+          "expr": "pg_stat_database_numbackends{datname=\"x5_support\"}",
           "legendFormat": "connections"
         }
       ],
@@ -540,8 +540,8 @@
     },
     {
       "id": 10,
-      "type": "table",
-      "title": "Проблемные цели (up == 0)",
+      "type": "stat",
+      "title": "Проблемные цели (0 = всё ок)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -555,31 +555,37 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "up == 0",
-          "instant": true,
-          "format": "table"
+          "expr": "sum(up == 0) or vector(0)",
+          "legendFormat": "down"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            }
+          "unit": "none",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
           }
         },
         "overrides": []
       },
       "options": {
-        "showHeader": true,
-        "footer": {
-          "show": false
-        }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value"
       }
     },
     {
