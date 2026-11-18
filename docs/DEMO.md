@@ -10,7 +10,7 @@
 | 2 | **https://app.x5-test-task.ru** | Домен, wildcard-сертификат. Работает у всех, кто не кэшировал старый DNS |
 | 3 | **https://x5-test-task.ru** | Основной домен. У части сетей может ещё отдавать старый парковочный IP из кэша |
 | 4 | **http://81.26.180.165/** | Резерв по IP, работает всегда |
-| — | **https://begin-estate-then-version.trycloudflare.com** | Grafana: `admin` / `change-me-before-use` |
+| — | **https://begin-estate-then-version.trycloudflare.com** | Grafana: `admin` / `<GRAFANA_ADMIN_PASSWORD>` |
 
 > URL туннелей «одноразовые» и меняются, если контейнер перезапускался.
 > Актуальные: `ssh ubuntu@81.26.180.165 'docker logs x5-support-tunnel 2>&1 | grep trycloudflare'`

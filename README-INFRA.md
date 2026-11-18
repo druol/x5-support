@@ -106,7 +106,7 @@ curl -I https://x5-test-task.ru/
 | Jaeger (профиль tracing) | http://localhost:16686 | — |
 | Postgres | `localhost:55432` | `x5-support` / `x5_local_password` |
 | Redis | `localhost:6379` | без пароля (только localhost) |
-| GitLab | http://localhost:8929 | `root` / `change-me-before-use` |
+| GitLab | http://localhost:8929 | `root` / `<GITLAB_ROOT_PASSWORD>` |
 | GitLab SSH | `ssh://git@localhost:2222` | — |
 
 Все порты по умолчанию слушают **только 127.0.0.1**. Чтобы открыть в локальной сети —
@@ -178,7 +178,7 @@ make gitlab-down             # остановить
 | Что | Значение |
 | --- | --- |
 | Web UI | http://localhost:8929 |
-| Логин / пароль | `root` / `change-me-before-use` (из `.env` → `GITLAB_ROOT_PASSWORD`) |
+| Логин / пароль | `root` / `<GITLAB_ROOT_PASSWORD>` (из `.env` → `GITLAB_ROOT_PASSWORD`) |
 | SSH-клонирование | `ssh://git@localhost:2222/<group>/<project>.git` |
 | Проект | http://localhost:8929/root/x5-support-infra |
 | Runner | `local-docker`, Docker executor, зарегистрирован и online |

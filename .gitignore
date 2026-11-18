@@ -22,3 +22,4 @@ dev-scratch/
 
 # Локальные секреты документации
 docs/09-credentials.local.md
+.demo.env

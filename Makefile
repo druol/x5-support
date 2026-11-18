@@ -83,3 +83,13 @@ backup:
 reset:
 	$(COMPOSE_OBS) down -v
 	docker compose -f docker-compose.gitlab.yml down -v 2>/dev/null || true
+
+.PHONY: demo demo-down demo-reset
+demo:
+	./scripts/demo.sh
+
+demo-down:
+	./scripts/demo.sh down
+
+demo-reset:
+	./scripts/demo.sh reset
