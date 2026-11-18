@@ -45,18 +45,11 @@ check "alertmanager"   "http://127.0.0.1:${ALERTMANAGER_PORT}/-/ready"
 check "loki"           "http://127.0.0.1:${LOKI_PORT}/ready"
 
 echo
-echo "── Postgres / Redis ───────────────────────────────────────"
+echo "── Postgres ─────────────────────────────────────────────────"
 if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-x5-support}" -d "${POSTGRES_DB:-x5-support}" >/dev/null 2>&1; then
   echo "  ✅ postgres                    ready"
 else
   echo "  ❌ postgres                    not ready"
-  FAILED=$((FAILED + 1))
-fi
-
-if [[ "$(docker compose exec -T redis redis-cli ping 2>/dev/null | tr -d '\r')" == "PONG" ]]; then
-  echo "  ✅ redis                       PONG"
-else
-  echo "  ❌ redis                       no PONG"
   FAILED=$((FAILED + 1))
 fi
 

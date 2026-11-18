@@ -71,7 +71,7 @@ ssh ubuntu@host "curl -fsS http://127.0.0.1:8080/healthz"
 `frontend/dist`, `certs`, `.pnpm-store`, `.go-cache`, `*-image.tar.gz`.
 
 > На сервере Docker Hub через `dockerproxy.net` может быть недоступен.
-> Поэтому база образов (caddy, postgres, redis, exporters) уже загружена,
+> Поэтому база образов (caddy, postgres, exporters) уже загружена,
 > а API/UI приезжают готовыми linux/amd64-образами из CI.
 
 ## 5. Runner

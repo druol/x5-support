@@ -8,7 +8,7 @@ COMPOSE_PROD := $(COMPOSE_OBS) -f docker-compose.prod.yml
 help:
 	@echo "X5 Support infra:"
 	@echo "  make up        core + весь observability-стек"
-	@echo "  make core      только app + postgres + redis + экспортеры"
+	@echo "  make core      только app + postgres + экспортеры"
 	@echo "  make obs       только наблюдаемость (без app)"
 	@echo "  make prod      прод-конфигурация с Caddy и HTTPS (нужен DOMAIN в .env)"
 	@echo "  make gitlab    локальный GitLab CE + runner"
@@ -25,7 +25,7 @@ core:
 	$(COMPOSE_BASE) up -d --build
 
 obs:
-	$(COMPOSE_OBS) up -d --build prometheus alertmanager grafana loki alloy cadvisor node-exporter blackbox-exporter
+	$(COMPOSE_OBS) up -d --build prometheus alertmanager grafana loki alloy docker-metrics node-exporter blackbox-exporter
 
 prod:
 	$(COMPOSE_PROD) up -d --build

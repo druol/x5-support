@@ -1,7 +1,7 @@
 name: x5-support
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Базовый стек: приложение + Postgres + Redis + экспортеры метрик.
+# Базовый стек: приложение + Postgres + экспортеры метрик.
 # Наблюдаемость подключается отдельным файлом:
 #   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 # ─────────────────────────────────────────────────────────────────────────────
@@ -111,32 +111,6 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: x5-support-redis
-    restart: unless-stopped
-    command:
-      - redis-server
-      - --appendonly
-      - "yes"
-      - --maxmemory
-      - "256mb"
-      - --maxmemory-policy
-      - allkeys-lru
-    volumes:
-      - redisdata:/data
-    ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
-    networks:
-      - backend
-      - monitoring
-    logging: *default-logging
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.16.0
     container_name: x5-support-postgres-exporter
@@ -151,20 +125,6 @@ services:
       - monitoring
     logging: *default-logging
 
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.62.0
-    container_name: x5-support-redis-exporter
-    restart: unless-stopped
-    environment:
-      REDIS_ADDR: redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - backend
-      - monitoring
-    logging: *default-logging
-
 networks:
   backend:
   monitoring:
@@ -172,4 +132,3 @@ networks:
 
 volumes:
   pgdata:
-  redisdata:

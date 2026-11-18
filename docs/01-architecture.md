@@ -23,8 +23,8 @@ Prometheus скрейпит app, backend, notifications и exporters; Grafana п
 
 | Файл | Что поднимает | Когда используется |
 |---|---|---|
-| `docker-compose.yml` | `app`, `migrate`, `backend`, `notifications`, `postgres`, `redis`, exporters | базовый стек |
-| `docker-compose.observability.yml` | `prometheus`, `alertmanager`, `grafana`, `loki`, `alloy`, `node-exporter`, `blackbox-exporter`, `autoheal` (+ профили `cadvisor`, `tracing`) | мониторинг и логи |
+| `docker-compose.yml` | `app`, `migrate`, `backend`, `notifications`, `postgres`, exporters | базовый стек |
+| `docker-compose.observability.yml` | `prometheus`, `alertmanager`, `grafana`, `loki`, `alloy`, `node-exporter`, `blackbox-exporter`, `docker-metrics`, `autoheal` | мониторинг и логи |
 | `docker-compose.prod.yml` | `caddy` (edge, 80/443), переопределяет порт app на `127.0.0.1:8090`, монтирует `./certs` | сервер |
 | `docker-compose.gitlab.yml` | `gitlab`, `gitlab-runner` | локально, отдельный проект `x5-support-gitlab` |
 
@@ -41,13 +41,13 @@ docker compose \
 
 | Сеть | Кто в ней | Зачем |
 |---|---|---|
-| `backend` | app, postgres, redis, prometheus, caddy | внутренний трафик приложения и БД |
+| `backend` | app, postgres, prometheus, caddy | внутренний трафик приложения и БД |
 | `monitoring` | prometheus, grafana, alloy, экспортеры, autoheal, app | сбор метрик |
 | `edge` | caddy, app | внешний край (Caddy) |
 
 Наружу (на сервере) опубликованы только `80/443` (Caddy). Всё остальное — на `127.0.0.1`:
-`8090` app (отладка), `55432` Postgres, `6379` Redis, `3000` Grafana, `9090` Prometheus,
-`9093` Alertmanager, `3100` Loki, `16686` Jaeger.
+`8090` app (отладка), `55432` Postgres, `3000` Grafana, `9090` Prometheus,
+`9093` Alertmanager, `3100` Loki.
 
 ## 4. Порты (локальная машина)
 
@@ -55,7 +55,6 @@ docker compose \
 |---|---|---|
 | 8090 → 8080 | приложение | 8080 часто занят на macOS |
 | 55432 → 5432 | Postgres | 5432 занят локальным/старым Postgres |
-| 6379 | Redis | стандартный |
 | 3000 / 9090 / 9093 / 3100 / 12345 | Grafana / Prometheus / Alertmanager / Loki / Alloy | стандартные |
 | 8929 / 2222 | GitLab Web / GitLab SSH | 8929 чтобы не конфликтовать с 80/443 |
 
@@ -64,13 +63,11 @@ docker compose \
 | Volume | Что хранит |
 |---|---|
 | `pgdata` | данные Postgres |
-| `redisdata` | AOF Redis |
 | `promdata` | TSDB Prometheus |
 | `alertdata` | состояние/молчания Alertmanager |
 | `grafanadata` | БД Grafana (дашборды, пользователи) |
 | `lokidata` | чанки логов Loki |
 | `alloydata` | позиции чтения логов Alloy |
-| `jaegerdata` | трейсы (profile `tracing`) |
 | `caddydata` / `caddyconfig` | сертификаты/автосейв Caddy |
 
 Плюс bind-mount `./certs` → `/certs:ro` (wildcard-сертификат Let's Encrypt).
@@ -86,7 +83,7 @@ docker compose \
 4. Prometheus раз в 15 секунд скрейпит:
    - `/metrics` самого Caddy (`app:2019`),
    - Go API (`backend:8080/metrics`) и notifications (`notifications:8080/metrics`),
-   - node-exporter, postgres-exporter, redis-exporter,
+   - node-exporter, postgres-exporter, docker-metrics,
    - Loki, Grafana, Alertmanager, blackbox-http.
 5. Alloy читает docker-логи и отправляет в Loki; в Grafana — дашборды из provisioning.
 6. Alertmanager получает алерты по правилам `infra/prometheus/rules/alerts.yml`.

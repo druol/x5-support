@@ -35,7 +35,7 @@ API и worker доступны внутри Compose сети, а UI обраща
 
 ```bash
 make up        # core + весь observability (сборка app)
-make core      # только app + postgres + redis + экспортеры
+make core      # только app + postgres + экспортеры
 make obs       # только наблюдаемость (без app)
 make prod      # прод-профиль с Caddy (нужен DOMAIN в .env)
 make down      # остановить

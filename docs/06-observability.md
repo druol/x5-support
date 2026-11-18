@@ -12,9 +12,7 @@
 | node-exporter | v1.8.2 | метрики хоста | внутри сети |
 | blackbox-exporter | v0.25.0 | HTTP-пробы | внутри сети |
 | postgres-exporter | v0.16.0 | метрики Postgres | внутри сети |
-| redis-exporter | v1.62.0 | метрики Redis | внутри сети |
 | docker-metrics | локальный exporter | CPU/память/число контейнеров | внутри сети |
-| Jaeger | all-in-one 1.62 | трейсы | профиль `tracing` |
 
 ## 2. Prometheus
 
@@ -31,7 +29,6 @@
 | `notifications` | `notifications:8080/metrics` | worker delivery/errors/lag и outbox backlog |
 | `docker` | `docker-metrics:9101` | CPU, память и число запущенных контейнеров |
 | `postgres` | `postgres-exporter:9187` | БД: соединения, транзакции, размер |
-| `redis` | `redis-exporter:9121` | память, ключи, hit-rate |
 | `loki` | `loki:3100` | здоровье Loki |
 | `grafana` | `grafana:3000` | здоровье Grafana |
 | `alertmanager` | `alertmanager:9093` | самометрики AM |
@@ -53,7 +50,6 @@ curl -s http://127.0.0.1:9090/api/v1/targets | jq '.data.activeTargets | length'
 | `TargetDown` | цель недоступна > 2m |
 | `HttpProbeFailing` | blackbox HTTP-проба неуспешна |
 | `PostgresDown` | `pg_up == 0` |
-| `RedisDown` | `redis_up == 0` |
 | `HighErrorRate` | доля 5xx у Caddy выше порога |
 | `AppLatencyHigh` | p95 latency приложения выше порога |
 | `X5OutboxBacklog` | > 100 событий в outbox или старейшее ждёт > 2 минут |
@@ -81,7 +77,7 @@ Alertmanager (`infra/alertmanager/alertmanager.yml`) по умолчанию б�
 
 | Файл | Название | Что показывает |
 |---|---|---|
-| `x5-overview.json` | X5 Support / Overview | здоровье приложения, RPS, ошибки, latency, БД/Redis |
+| `x5-overview.json` | X5 Support / Overview | здоровье приложения, RPS, ошибки, latency, БД |
 | `x5-infra.json` | X5 Support / Infra | хост: CPU, RAM, диск, сеть, контейнеры |
 | `x5-logs.json` | X5 Support / Logs | логи из Loki (фильтры по контейнерам и уровню) |
 | `support-service.json` | Support / Service | HTTP RPS/ошибки/p95, outbox, доставка уведомлений, пул Postgres |

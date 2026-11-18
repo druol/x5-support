@@ -8,7 +8,7 @@
 Ты — senior full-stack разработчик. В репозитории `uiarc-dashboard` прочитай сначала
 `docs/00-ai-context.md`, `docs/08-rebuild-ticketing.md`, `docs/10-support-tickets-tz.md`
 и `docs/01-architecture.md` — там весь контекст: текущая инфраструктура (Docker Compose,
-Postgres, Redis, Prometheus/Grafana, GitLab CI, деплой в Yandex Cloud, домен и HTTPS),
+Postgres, Prometheus/Grafana, GitLab CI, деплой в Yandex Cloud, домен и HTTPS),
 правила работы и полный текст тестового задания. Наша задача — полностью переписать
 приложение под ТЗ «Сервис заявок поддержки»: добавить бэкенд на **Go + PostgreSQL** и
 **отдельный сервис уведомлений** с асинхронной доставкой, идемпотентностью (без дублей)

@@ -60,12 +60,6 @@ scrape_configs:
         labels:
           service: postgres
 
-  - job_name: redis
-    static_configs:
-      - targets: ["redis-exporter:9121"]
-        labels:
-          service: redis
-
   - job_name: loki
     static_configs:
       - targets: ["loki:3100"]

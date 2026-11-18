@@ -26,8 +26,6 @@
 | [`05-dns-tls.md`](05-dns-tls.md) | Домен, DNS-записи, wildcard-сертификат (DNS-01), история с кэшами |
 | [`06-observability.md`](06-observability.md) | Prometheus, Grafana, Loki, Alloy, Alertmanager, алерты и дашборды |
 | [`07-troubleshooting.md`](07-troubleshooting.md) | Собранные проблемы и их решения (Docker Hub, gcr, npm, DNS-кэш и т.д.) |
-| [`08-rebuild-ticketing.md`](08-rebuild-ticketing.md) | Как переделать приложение под тикетную систему, что менять в CI/CD |
-| [`09-credentials.local.md`](09-credentials.local.md) | Локальные пароли/токены (**не коммитится**, лежит только на машине) |
 | [`10-support-tickets-tz.md`](10-support-tickets-tz.md) | Полный текст тестового задания «Сервис заявок поддержки» |
 | [`PROMPT-ASTRA.md`](PROMPT-ASTRA.md) | Готовый промпт для передачи проекта другому AI |
 | [`DEMO.md`](DEMO.md) | План демо тимлиду: ссылки, чек-лист, план Б |
@@ -46,6 +44,6 @@
 ## Главные принципы
 
 1. **GitLab и runner живут локально**, сервер — только рантайм и цель деплоя.
-2. **Локальная реализация и production разведены**: тикетная система собрана в Compose; production deployment/CI/CD не обновлялись и не проверялись (см. `08-rebuild-ticketing.md`).
+2. **Среда разработки и production разведены**: локальный стек поднимается через Compose, production описан в `04-server-production.md`, CI/CD — в `03-cicd.md`.
 3. **Секреты не в git**: `.env` на сервере, GitLab CI Variables для деплоя.
 4. **Всё, что можно проверить скриптом — проверяется скриптом**: `make status`, `make smoke`, `scripts/*.sh`.

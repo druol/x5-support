@@ -11,9 +11,5 @@ services:
     container_name: x5-support-demo-notifications
   postgres:
     container_name: x5-support-demo-postgres
-  redis:
-    container_name: x5-support-demo-redis
   postgres-exporter:
     container_name: x5-support-demo-postgres-exporter
-  redis-exporter:
-    container_name: x5-support-demo-redis-exporter

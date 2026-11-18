@@ -91,7 +91,7 @@ worker даже при ошибке. Не запускайте его с вне�
 
 Подробности реализации и известных ограничений: [docs/01-architecture.md](docs/01-architecture.md),
 [docs/02-local-dev.md](docs/02-local-dev.md), [docs/06-observability.md](docs/06-observability.md),
-[docs/08-rebuild-ticketing.md](docs/08-rebuild-ticketing.md).
+[docs/07-troubleshooting.md](docs/07-troubleshooting.md).
 
 ## Ручная приёмка
 

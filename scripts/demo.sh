@@ -28,12 +28,12 @@ fi
 action="${1:-up}"
 case "$action" in
   down|stop)
-    "${COMPOSE[@]}" down
+    "${COMPOSE[@]}" down --remove-orphans
     echo "Демо остановлено. Данные сохранены (запуск снова: ./scripts/demo.sh)."
     exit 0
     ;;
   reset)
-    "${COMPOSE[@]}" down -v
+    "${COMPOSE[@]}" down -v --remove-orphans
     rm -f "$ENV_FILE"
     echo "Демо остановлено, данные и .demo.env удалены."
     exit 0
@@ -75,7 +75,6 @@ POSTGRES_DB=x5_support
 POSTGRES_USER=x5
 POSTGRES_PASSWORD=x5_local_password
 POSTGRES_PORT=0
-REDIS_PORT=0
 APP_ENV=local
 LOG_LEVEL=info
 DEBUG_RESET=1
@@ -89,7 +88,7 @@ if docker ps --format '{{.Names}}' | grep -q '^x5-support-demo-'; then
 fi
 
 echo "Собираю и запускаю демо (первый запуск может занять несколько минут)..."
-"${COMPOSE[@]}" up -d --build
+"${COMPOSE[@]}" up -d --build --remove-orphans
 
 echo "Жду готовности приложения на http://127.0.0.1:$APP_PORT ..."
 for _ in $(seq 1 60); do

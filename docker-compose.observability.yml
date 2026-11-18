@@ -2,7 +2,6 @@
 # Наблюдаемость: Prometheus, Alertmanager, Grafana, Loki + Alloy, экспортеры.
 # Запуск вместе с базовым стеком:
 #   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
-# Профиль tracing (Jaeger) — добавить --profile tracing.
 # ─────────────────────────────────────────────────────────────────────────────
 
 x-logging: &default-logging
@@ -152,28 +151,6 @@ services:
       - monitoring
     logging: *default-logging
 
-  # Профиль tracing: включается по желанию (--profile tracing).
-  jaeger:
-    image: jaegertracing/all-in-one:1.62.0
-    container_name: x5-support-jaeger
-    restart: unless-stopped
-    profiles: ["tracing"]
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-      SPAN_STORAGE_TYPE: badger
-      BADGER_EPHEMERAL: "false"
-      BADGER_DIRECTORY_VALUE: /badger/data
-      BADGER_DIRECTORY_KEY: /badger/key
-    volumes:
-      - jaegerdata:/badger
-    ports:
-      - "127.0.0.1:${JAEGER_UI_PORT:-16686}:16686"
-      - "127.0.0.1:4317:4317"
-      - "127.0.0.1:4318:4318"
-    networks:
-      - monitoring
-    logging: *default-logging
-
   # Перезапускает unhealthy-контейнеры автоматически.
   autoheal:
     image: willfarrell/autoheal:latest
@@ -195,5 +172,4 @@ volumes:
   grafanadata:
   lokidata:
   alloydata:
-  jaegerdata:
 

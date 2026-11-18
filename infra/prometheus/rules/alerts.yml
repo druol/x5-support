@@ -28,15 +28,6 @@ groups:
           summary: "Postgres недоступен"
           description: "Postgres-exporter не может подключиться к базе."
 
-      - alert: RedisDown
-        expr: redis_up == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Redis недоступен"
-          description: "Redis-exporter не может подключиться к Redis."
-
   - name: x5-support-performance
     rules:
       - alert: SupportOutboxBacklog

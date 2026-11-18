@@ -33,8 +33,8 @@ GitLab и CI/CD.
   `https://dockerproxy.net/`.
 - **npm registry недоступен** — в `frontend/Dockerfile` используется
   `NPM_REGISTRY=https://registry.npmmirror.com`.
-- **cAdvisor отключён** (образ только на `gcr.io`, он блокируется; плюс перенос с Mac
-  дал arm64-образ). Сервис спрятан в профиль `cadvisor`, включается вручную.
+- **cAdvisor не используется** (amd64-образ недоступен на offline-хосте). CPU/память
+  контейнеров собирает лёгкий `docker-metrics` exporter через Docker socket.
 - **Grafana/Prometheus слушают только 127.0.0.1** — доступ через SSH-туннель.
 
 ## 0.1. Включение HTTPS (когда домен указывает на сервер)
@@ -66,7 +66,7 @@ curl -I https://x5-test-task.ru/
 
 ```
 ┌─ ЛОКАЛЬНО (Mac) ──────────────────────┐     ┌─ СЕРВЕР (VPS) ───────────────────┐
-│ GitLab CE + runner                    │     │ app + postgres + redis           │
+│ GitLab CE + runner                    │     │ app + postgres           │
 │  check → build → deploy (manual)      │────▶│ observability (Prometheus,        │
 │  rsync по SSH                         │ SSH │ Grafana, Loki, Alloy, exporters) │
 └───────────────────────────────────────┘     │ Caddy :80/:443 + HTTPS           │
@@ -77,20 +77,20 @@ curl -I https://x5-test-task.ru/
                         └──────────────────────────────┘  │ метрики
    ┌──────────────────────────────────────────────────┐   │
    │ monitoring network                               │   │
-   │  Prometheus ◀── app:2019, cadvisor, node-exporter│◀──┘
-   │      │            postgres/redis-exporter,       │
+   │  Prometheus ◀── app:2019, docker-metrics, node-exporter│◀──┘
+   │      │            postgres-exporter,       │
    │      │            blackbox, loki, grafana        │
    │      ├──▶ Alertmanager                           │
    │      └──▶ Grafana ◀── Loki ◀── Alloy ◀ docker.sock│
    └──────────────────────────────────────────────────┘
 
-   app ──▶ Postgres 16        app ──▶ Redis 7
+   app ──▶ Postgres 16
         (публикация в БД — на будущее API)
 ```
 
 - **app** — многоступенчатая сборка: `node:22` + pnpm → статика → `caddy:2-alpine`.
   Caddy отдаёт SPA, `/healthz` и метрики на `:2019`.
-- **Postgres / Redis** — готовы под будущий API; сейчас приложение статичное.
+- **Postgres** — хранилище заявок, истории и outbox.
 - **Наблюдаемость** — отдельным compose-файлом, включает и выключается независимо.
 
 ## 2. Порты и доступы
@@ -103,9 +103,7 @@ curl -I https://x5-test-task.ru/
 | Alertmanager | http://localhost:9093 | — |
 | Loki (API) | http://localhost:3100 | — |
 | Alloy UI | http://localhost:12345 | — |
-| Jaeger (профиль tracing) | http://localhost:16686 | — |
 | Postgres | `localhost:55432` | `x5-support` / `x5_local_password` |
-| Redis | `localhost:6379` | без пароля (только localhost) |
 | GitLab | http://localhost:8929 | `root` / `<GITLAB_ROOT_PASSWORD>` |
 | GitLab SSH | `ssh://git@localhost:2222` | — |
 
@@ -141,29 +139,19 @@ make smoke      # подробная проверка + цели Prometheus
 | Источник | Метрики | Дашборд |
 | --- | --- | --- |
 | Caddy (app) | запросы, коды ответов, латентность | Overview |
-| cAdvisor | CPU/память/сеть контейнеров | Overview, Infrastructure |
+| docker-metrics | CPU/память/число контейнеров | Overview, Infrastructure |
 | node-exporter | CPU/память/диск/сеть хоста | Infrastructure |
 | postgres-exporter | соединения, размер БД, аптайм | Overview |
-| redis-exporter | команды, клиенты, память | Overview |
 | blackbox-exporter | доступность приложения и Grafana «как пользователь» | Overview |
 | Loki + Alloy | stdout/stderr всех контейнеров | Logs |
 | Prometheus | здоровье самих скрейп-целей | Overview |
 
 **Алерты** (`infra/prometheus/rules/alerts.yml`): TargetDown, HttpProbeFailing,
-PostgresDown, RedisDown, HighErrorRate (>5% 5xx), AppLatencyHigh (p95 > 500 мс),
+PostgresDown, HighErrorRate (>5% 5xx), AppLatencyHigh (p95 > 500 мс),
 ContainerMemoryHigh (>90% лимита), DiskSpaceLow (<15%).
 
 Получатель алертов по умолчанию — заглушка. Реальные каналы (webhook, email, Telegram)
 включаются в `infra/alertmanager/alertmanager.yml` (там готовые заготовки).
-
-**Профиль tracing.** Jaeger поднимается по желанию:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile tracing up -d
-```
-
-OTLP-эндпоинты: `localhost:4317` (gRPC) и `localhost:4318` (HTTP). Подключайте SDK,
-когда появится API.
 
 ## 5. GitLab и CI/CD
 
@@ -247,8 +235,8 @@ uiarc-dashboard/
 │   ├── tsconfig.json
 │   ├── Caddyfile                   # статика + /healthz + метрики
 │   └── Dockerfile                  # multi-stage: pnpm build → Caddy
-├── docker-compose.yml              # core: app, postgres, redis, экспортеры
-├── docker-compose.observability.yml# Prometheus, Grafana, Loki, Alloy, cAdvisor…
+├── docker-compose.yml              # core: app, postgres, экспортеры
+├── docker-compose.observability.yml# Prometheus, Grafana, Loki, Alloy, docker-metrics…
 ├── docker-compose.prod.yml         # Caddy 80/443 + HTTPS для сервера
 ├── docker-compose.gitlab.yml       # GitLab CE + runner (отдельный проект)
 ├── .gitlab-ci.yml                  # check → build-image → deploy
@@ -413,7 +401,6 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 | `port is already allocated` | занят 8080/3000/9090 — поменяйте порт в `.env` |
 | Grafana пустая, дашбордов нет | проверьте `docker compose logs grafana`, путь `/var/lib/grafana/dashboards` |
 | Prometheus target `DOWN` | `docker compose logs <service>`; проверьте сеть `monitoring` |
-| cAdvisor падает на macOS | Docker Desktop даёт урезанный `/var/lib/docker`; на Linux-сервере работает полноценно |
 | node-exporter показывает «чужой» хост | на macOS это Linux-VM Docker Desktop, а не macOS — это нормально |
 | GitLab не стартует / OOM | нужно ≥5 ГБ свободной памяти Docker; `make down` перед `make gitlab` |
 | Логи не появляются в Loki | проверьте `docker compose logs alloy`, доступ к `/var/run/docker.sock` |
@@ -421,8 +408,8 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 
 ## 12. Что дальше
 
-1. **API-сервис** (Go/Node) в этом же compose: подключить к Postgres/Redis, добавить
-   `/metrics` и OTLP-трейсинг в Jaeger.
+1. **API-сервис** (Go/Node) в этом же compose: подключить к Postgres, добавить
+   `/metrics` для Prometheus.
 2. **Алерты в Telegram** — 10 строк в `alertmanager.yml`.
 3. **Grafana за доменом** — поддомен `grafana.example.ru` + basic-auth в Caddy.
 4. **Бэкапы в S3** — cron + rclone, проверка восстановления раз в месяц.

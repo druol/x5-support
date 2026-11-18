@@ -19,12 +19,10 @@ sudo systemctl restart docker
 Альтернатива: `docker save | gzip | ssh host 'gunzip | docker load'` с машины, где
 интернет работает.
 
-### `gcr.io` недоступен → cAdvisor
+### `gcr.io` недоступен → контейнерные метрики
 Симптом: `failed to resolve reference "gcr.io/cadvisor/cadvisor"`.
 
-Решение: cAdvisor отключён (профиль `cadvisor`), метрики контейнеров не собираются.
-Включать только если найдётся доступное зеркало amd64-образа (перенос с Mac даёт arm64 →
-`exec format error`).
+Решение: cAdvisor не используется; CPU/память контейнеров отдаёт `docker-metrics`.
 
 ### `pnpm build` падает в Docker при установке
 Симптом: `npm error network ... registry.npmjs.org`.

@@ -7,7 +7,7 @@
 
 Пользователь вайб-кодит тестовое задание для X5 (админ-панель / аналитика).
 Сначала был сделан лендинг-дашборд «Орбита» (папка `frontend/`), под него — полная
-инфраструктура: Docker Compose, Postgres, Redis, Prometheus, Grafana, Loki, GitLab CI,
+инфраструктура: Docker Compose, Postgres, Prometheus, Grafana, Loki, GitLab CI,
 деплой в Yandex Cloud, домен и HTTPS.
 
 **Локальное приложение уже переписано в тикетную систему:** React-клиент, Go API,
@@ -45,7 +45,7 @@ PostgreSQL и отдельный процесс доставки уведомл�
 ```
 uiarc-dashboard/
 ├── frontend/                  # приложение (Vite + React + TS), Dockerfile → Caddy
-├── docker-compose.yml         # core: app, postgres, redis, экспортеры
+├── docker-compose.yml         # core: app, postgres, экспортеры
 ├── docker-compose.observability.yml  # prometheus, grafana, loki, alloy, alertmanager, ...
 ├── docker-compose.prod.yml    # Caddy edge (80/443), приложение только 127.0.0.1
 ├── docker-compose.gitlab.yml  # локальный GitLab CE + runner (отдельный compose-проект)
@@ -93,8 +93,8 @@ uiarc-dashboard/
 
 1. **Docker Hub из РФ нестабилен** → на сервере настроено зеркало `https://dockerproxy.net/`
    в `/etc/docker/daemon.json`. Если pull снова падает — проверь зеркало/сеть.
-2. **gcr.io заблокирован** → `cadvisor` отключён (профиль `cadvisor`), метрики контейнеров
-   отсутствуют. Включать только при наличии доступного образа amd64.
+2. **gcr.io заблокирован** → `cadvisor` не используется; метрики контейнеров
+   собирает лёгкий `docker-metrics` exporter через Docker socket.
 3. **npm registry недоступен с сервера** → в `frontend/Dockerfile` задан
    `NPM_REGISTRY=https://registry.npmmirror.com`.
 4. **Входящие соединения из-за рубежа до ВМ не доходят** → HTTP-01 Let's Encrypt невозможен,

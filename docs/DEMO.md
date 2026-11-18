@@ -23,7 +23,7 @@
 3. **GitLab** (локально, только если демо с твоего ноутбука): http://localhost:8929/root/x5-support-infra
    — пайплайн `lint → test → check → build-image → deploy`, runner online, последний пайплайн зелёный.
 4. **Инфраструктура:** Docker Compose (core/observability/prod), Prometheus + Alertmanager + Loki + Alloy,
-   Postgres/Redis с экспортерами, autoheal, бэкап Postgres по cron, HTTPS wildcard Let's Encrypt (DNS-01).
+   Postgres с экспортерами, autoheal, бэкап Postgres по cron, HTTPS wildcard Let's Encrypt (DNS-01).
 
 ## Чек-лист за 30 минут до демо
 

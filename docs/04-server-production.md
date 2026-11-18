@@ -52,9 +52,7 @@ Sudo без пароля у `ubuntu` настроен образом Yandex Clou
 | `x5-support-edge` | caddy:2.9-alpine | HTTPS-edge, 80/443 |
 | `x5-support-app` | x5-support-app:local | статика приложения |
 | `x5-support-postgres` | postgres:16-alpine | БД |
-| `x5-support-redis` | redis:7-alpine | кэш |
 | `x5-support-postgres-exporter` | prometheuscommunity/postgres-exporter | метрики PG |
-| `x5-support-redis-exporter` | oliver006/redis_exporter | метрики Redis |
 | `x5-support-prometheus` | prom/prometheus:v2.55.1 | сбор метрик |
 | `x5-support-alertmanager` | prom/alertmanager:v0.27.0 | алерты |
 | `x5-support-grafana` | grafana/grafana:11.3.0 | дашборды |
@@ -68,8 +66,8 @@ Sudo без пароля у `ubuntu` настроен образом Yandex Clou
 
 У всех `restart: unless-stopped`, автостарт после перезагрузки ВМ.
 
-> cAdvisor **отключён** (профиль `cadvisor`): образ только на `gcr.io`, он блокируется
-> из РФ, а перенос с Mac дал arm64-образ.
+> cAdvisor не используется: его amd64-образ недоступен на сервере. CPU/память контейнеров
+> собирает лёгкий `docker-metrics` exporter через Docker API.
 
 ## 5. Каталоги
 

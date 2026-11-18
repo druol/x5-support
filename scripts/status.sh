@@ -25,16 +25,14 @@ line "loki" "http://localhost:${LOKI_PORT}" "$(code "http://127.0.0.1:${LOKI_POR
 line "alloy" "http://localhost:12345" "$(code "http://127.0.0.1:12345/")"
 line "gitlab" "http://localhost:${GITLAB_WEB_PORT}" "$(code "http://127.0.0.1:${GITLAB_WEB_PORT}/users/sign_in")"
 line "postgres" "localhost:${POSTGRES_PORT:-55432}" "$(docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-x5-support}" -d "${POSTGRES_DB:-x5-support}" >/dev/null 2>&1 && echo OK || echo DOWN)"
-line "redis" "localhost:${REDIS_PORT:-6379}" "$(docker compose exec -T redis redis-cli ping 2>/dev/null | tr -d '\r')"
 
 echo
 echo "════════ ВНУТРЕННИЕ (без публикации наружу) ════════"
 for pair in \
   "node-exporter:node-exporter:9100" \
-  "cadvisor:cadvisor:8080" \
+  "docker-metrics:docker-metrics:9101" \
   "blackbox:blackbox-exporter:9115" \
-  "postgres-exporter:postgres-exporter:9187" \
-  "redis-exporter:redis-exporter:9121"; do
+  "postgres-exporter:postgres-exporter:9187"; do
   name="${pair%%:*}"; rest="${pair#*:}"; host="${rest%%:*}"; port="${rest##*:}"
   st=$(docker exec x5-support-prometheus wget -qO- "http://${host}:${port}/metrics" >/dev/null 2>&1 && echo OK || echo DOWN)
   line "$name" "${host}:${port} (docker network)" "$st"

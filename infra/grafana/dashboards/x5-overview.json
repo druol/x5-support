@@ -1,7 +1,7 @@
 {
   "uid": "x5-support-overview",
   "title": "X5 Support · Overview",
-  "description": "Главный экран: доступность, трафик, латентность, ресурсы контейнеров и состояние БД. Разбивка по сервисам для контейнеров появляется на Linux-хосте (на macOS Docker Desktop cAdvisor не отдаёт имена контейнеров).",
+  "description": "Главный экран: доступность, трафик, латентность, ресурсы контейнеров и состояние БД.",
   "tags": [
     "x5-support",
     "local"
@@ -586,57 +586,6 @@
           ]
         },
         "colorMode": "value"
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Redis: команд/сек и клиенты",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 27
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "rate(redis_commands_processed_total[5m])",
-          "legendFormat": "commands/s"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisPlacement": "auto"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
       }
     }
   ]
