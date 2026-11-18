@@ -24,7 +24,7 @@ Prometheus скрейпит app, backend, notifications и exporters; Grafana п
 | Файл | Что поднимает | Когда используется |
 |---|---|---|
 | `docker-compose.yml` | `app`, `migrate`, `backend`, `notifications`, `postgres`, exporters | базовый стек |
-| `docker-compose.observability.yml` | `prometheus`, `alertmanager`, `grafana`, `loki`, `alloy`, `node-exporter`, `blackbox-exporter`, `docker-metrics`, `autoheal` | мониторинг и логи |
+| `docker-compose.observability.yml` | `prometheus`, `alertmanager`, `grafana`, `loki`, `alloy`, `node-exporter`, `blackbox-exporter`, `docker-metrics`, `autoheal` (+ профиль `db-ui` — pgAdmin) | мониторинг и логи |
 | `docker-compose.prod.yml` | `caddy` (edge, 80/443), переопределяет порт app на `127.0.0.1:8090`, монтирует `./certs` | сервер |
 | `docker-compose.gitlab.yml` | `gitlab`, `gitlab-runner` | локально, отдельный проект `x5-support-gitlab` |
 

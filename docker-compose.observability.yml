@@ -51,6 +51,28 @@ services:
       - monitoring
     logging: *default-logging
 
+  pgadmin:
+    profiles: ["db-ui"]
+    image: dpage/pgadmin4:8
+    container_name: x5-support-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - pgadmindata:/var/lib/pgadmin
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - monitoring
+    logging: *default-logging
+
   grafana:
     user: "0:0"
     image: grafana/grafana:11.3.0
@@ -172,4 +194,5 @@ volumes:
   grafanadata:
   lokidata:
   alloydata:
+  pgadmindata:
 

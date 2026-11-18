@@ -3,7 +3,7 @@ COMPOSE_BASE := docker compose -f docker-compose.yml
 COMPOSE_OBS := $(COMPOSE_BASE) -f docker-compose.observability.yml
 COMPOSE_PROD := $(COMPOSE_OBS) -f docker-compose.prod.yml
 
-.PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset docker-metrics-image
+.PHONY: help up core obs prod down ps logs smoke status build gitlab gitlab-down gitlab-bootstrap runner backup reset docker-metrics-image db-ui db-ui-down
 
 help:
 	@echo "X5 Support infra:"
@@ -32,6 +32,14 @@ obs: docker-metrics-image
 
 prod:
 	$(COMPOSE_PROD) up -d --build
+
+db-ui:
+	$(COMPOSE_OBS) --profile db-ui up -d pgadmin
+	@echo "pgAdmin: http://localhost:$${PGADMIN_PORT:-5050} (admin@example.com / admin)"
+	@echo "Сервер X5 Support (local) уже настроен; открой Databases → x5_support → Schemas → ticketing."
+
+db-ui-down:
+	$(COMPOSE_OBS) --profile db-ui stop pgadmin
 
 down:
 	$(COMPOSE_OBS) down

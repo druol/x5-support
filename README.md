@@ -28,6 +28,20 @@ make demo
 Демо использует отдельные container names, volumes и проект Compose, поэтому не конфликтует
 с обычным dev-стеком.
 
+## Просмотр базы через pgAdmin
+
+Для локального просмотра таблиц:
+
+```bash
+make db-ui
+```
+
+pgAdmin откроется на `http://localhost:5050`; сервер **X5 Support (local)** уже добавлен.
+Дальше: `Servers → X5 Support (local) → Databases → x5_support → Schemas → ticketing`.
+
+Логин по умолчанию: `admin@example.com` / `admin` (меняется через `PGADMIN_EMAIL` и
+`PGADMIN_PASSWORD`). Остановить: `make db-ui-down`.
+
 ## Запуск для разработки
 
 Требуются Docker Desktop с Compose v2, Node.js 22+, pnpm 9 и Python 3 для проверок.

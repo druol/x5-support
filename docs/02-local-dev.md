@@ -133,3 +133,14 @@ Runner собирает образы через docker.sock хоста и деп
 - Если порт 8080/5432 занят — подними `APP_PORT`/`POSTGRES_PORT` в `.env`.
 - Все UI-сервисы слушают `127.0.0.1`, наружу не торчат.
 - Скриншоты интерфейса для документации: `docs/infra/*.png`.
+
+
+## pgAdmin
+
+```bash
+make db-ui       # http://localhost:5050, сервер X5 Support (local) уже настроен
+make db-ui-down  # остановить
+```
+
+Сервис поднимается отдельным профилем `db-ui`, наружу не публикуется: bind только
+`127.0.0.1`. Для просмотра таблиц: `Databases → x5_support → Schemas → ticketing`.
